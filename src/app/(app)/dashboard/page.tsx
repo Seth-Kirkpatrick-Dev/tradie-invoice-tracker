@@ -1,17 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
+import { getUser, getProfile } from '@/lib/supabase/auth'
 import Link from 'next/link'
 import { formatCurrency, daysOverdue } from '@/lib/utils'
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const [user, profile] = await Promise.all([getUser(), getProfile()])
   if (!user) return null
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('first_name, currency')
-    .eq('id', user.id)
-    .single()
+  const supabase = await createClient()
+  const currency = profile?.currency ?? 'NZD'
 
   const today = new Date().toISOString().split('T')[0]
   const sevenDaysLater = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]
@@ -29,15 +26,14 @@ export default async function DashboardPage() {
       .limit(5),
   ])
 
-  const currency = profile?.currency ?? 'NZD'
-  const overdueTotal  = (overdueRes.data ?? []).reduce((s, r) => s + r.total, 0)
-  const dueSoonTotal  = (dueSoonRes.data ?? []).reduce((s, r) => s + r.total, 0)
-  const paidTotal     = (paidRes.data   ?? []).reduce((s, r) => s + r.total, 0)
+  const overdueTotal = (overdueRes.data ?? []).reduce((s, r) => s + r.total, 0)
+  const dueSoonTotal = (dueSoonRes.data ?? []).reduce((s, r) => s + r.total, 0)
+  const paidTotal    = (paidRes.data   ?? []).reduce((s, r) => s + r.total, 0)
 
   const stats = [
-    { label: 'Overdue',        value: overdueTotal, color: 'text-red-600',    bg: 'bg-red-50',    border: 'border-red-100' },
-    { label: 'Due this week',  value: dueSoonTotal, color: 'text-yellow-600', bg: 'bg-yellow-50', border: 'border-yellow-100' },
-    { label: 'Paid this month',value: paidTotal,    color: 'text-green-600',  bg: 'bg-green-50',  border: 'border-green-100' },
+    { label: 'Overdue',         value: overdueTotal, color: 'text-red-600',    bg: 'bg-red-50',    border: 'border-red-100' },
+    { label: 'Due this week',   value: dueSoonTotal, color: 'text-yellow-600', bg: 'bg-yellow-50', border: 'border-yellow-100' },
+    { label: 'Paid this month', value: paidTotal,    color: 'text-green-600',  bg: 'bg-green-50',  border: 'border-green-100' },
   ]
 
   return (
@@ -49,19 +45,15 @@ export default async function DashboardPage() {
         <p className="text-gray-500 text-sm mt-0.5">Here&apos;s your invoice summary.</p>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {stats.map(s => (
           <div key={s.label} className={`rounded-xl border p-5 ${s.bg} ${s.border}`}>
             <p className="text-sm text-gray-500">{s.label}</p>
-            <p className={`text-2xl font-bold mt-1 ${s.color}`}>
-              {formatCurrency(s.value, currency)}
-            </p>
+            <p className={`text-2xl font-bold mt-1 ${s.color}`}>{formatCurrency(s.value, currency)}</p>
           </div>
         ))}
       </div>
 
-      {/* Recent active invoices */}
       <div className="bg-white rounded-xl border border-gray-200">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h2 className="font-semibold text-gray-900">Active invoices</h2>
@@ -78,7 +70,7 @@ export default async function DashboardPage() {
         ) : (
           <ul className="divide-y divide-gray-50">
             {recentRes.data.map((inv: any) => {
-              const overdue = inv.status === 'overdue' ? daysOverdue(inv.due_date) : null
+              const days = inv.status === 'overdue' ? daysOverdue(inv.due_date) : null
               return (
                 <li key={inv.id}>
                   <Link href={`/invoices/${inv.id}`} className="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 transition-colors">
@@ -88,7 +80,9 @@ export default async function DashboardPage() {
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-semibold text-gray-900">{formatCurrency(inv.total, inv.currency)}</p>
-                      <StatusBadge status={inv.status} daysOver={overdue} />
+                      {inv.status === 'overdue' && <span className="text-xs font-medium text-red-600">{days}d overdue</span>}
+                      {inv.status === 'sent'    && <span className="text-xs font-medium text-blue-600">Sent</span>}
+                      {inv.status === 'draft'   && <span className="text-xs font-medium text-gray-400">Draft</span>}
                     </div>
                   </Link>
                 </li>
@@ -99,11 +93,4 @@ export default async function DashboardPage() {
       </div>
     </div>
   )
-}
-
-function StatusBadge({ status, daysOver }: { status: string; daysOver: number | null }) {
-  if (status === 'overdue') return <span className="text-xs font-medium text-red-600">{daysOver}d overdue</span>
-  if (status === 'sent')    return <span className="text-xs font-medium text-blue-600">Sent</span>
-  if (status === 'draft')   return <span className="text-xs font-medium text-gray-400">Draft</span>
-  return null
 }

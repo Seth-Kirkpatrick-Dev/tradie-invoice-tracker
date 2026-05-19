@@ -1,11 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
+import { getUser } from '@/lib/supabase/auth'
 import ClientsClient from './ClientsClient'
 
 export default async function ClientsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) return null
 
+  const supabase = await createClient()
   const { data: clients } = await supabase
     .from('clients')
     .select('id, name, email, phone, address, notes')

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getUser } from '@/lib/supabase/auth'
 import Link from 'next/link'
 import { formatCurrency, formatDate, daysOverdue } from '@/lib/utils'
 
@@ -9,10 +10,10 @@ export default async function InvoicesPage({
 }: {
   searchParams: Promise<{ status?: string }>
 }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) return null
 
+  const supabase = await createClient()
   const params = await searchParams
   const activeTab = params.status ?? 'all'
 
@@ -24,16 +25,14 @@ export default async function InvoicesPage({
 
   if (activeTab !== 'all') query = query.eq('status', activeTab)
 
-  const { data: invoices } = await query
+  const [invoicesRes, profileRes] = await Promise.all([
+    query,
+    supabase.from('profiles').select('subscription_tier').eq('id', user.id).single(),
+  ])
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('subscription_tier')
-    .eq('id', user.id)
-    .single()
-
-  const activeCount = (invoices ?? []).filter(i => ['draft','sent','overdue'].includes(i.status)).length
-  const atFreeLimit = profile?.subscription_tier === 'free' && activeCount >= 5
+  const invoices = invoicesRes.data ?? []
+  const activeCount = invoices.filter(i => ['draft','sent','overdue'].includes(i.status)).length
+  const atFreeLimit = profileRes.data?.subscription_tier === 'free' && activeCount >= 5
 
   return (
     <div className="px-6 py-8 max-w-4xl mx-auto">
@@ -50,7 +49,6 @@ export default async function InvoicesPage({
         )}
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-1 mb-5 bg-gray-100 rounded-lg p-1 w-fit">
         {STATUS_TABS.map(tab => (
           <Link
@@ -66,12 +64,10 @@ export default async function InvoicesPage({
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200">
-        {!invoices?.length ? (
+        {!invoices.length ? (
           <div className="p-10 text-center text-gray-400 text-sm">
             No invoices{activeTab !== 'all' ? ` with status "${activeTab}"` : ''}.
-            {activeTab === 'all' && (
-              <> <Link href="/invoices/new" className="text-blue-600 hover:underline">Add your first one →</Link></>
-            )}
+            {activeTab === 'all' && <> <Link href="/invoices/new" className="text-blue-600 hover:underline">Add your first one →</Link></>}
           </div>
         ) : (
           <ul className="divide-y divide-gray-100">
@@ -90,9 +86,7 @@ export default async function InvoicesPage({
                         {days !== null && <span className="text-red-500 font-medium"> · {days}d overdue</span>}
                       </p>
                     </div>
-                    <p className="text-sm font-bold text-gray-900 ml-4 shrink-0">
-                      {formatCurrency(inv.total, inv.currency)}
-                    </p>
+                    <p className="text-sm font-bold text-gray-900 ml-4 shrink-0">{formatCurrency(inv.total, inv.currency)}</p>
                   </Link>
                 </li>
               )
@@ -106,10 +100,8 @@ export default async function InvoicesPage({
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
-    draft:   'bg-gray-100 text-gray-500',
-    sent:    'bg-blue-100 text-blue-700',
-    overdue: 'bg-red-100 text-red-700',
-    paid:    'bg-green-100 text-green-700',
+    draft: 'bg-gray-100 text-gray-500', sent: 'bg-blue-100 text-blue-700',
+    overdue: 'bg-red-100 text-red-700', paid: 'bg-green-100 text-green-700',
   }
   return <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${map[status] ?? ''}`}>{status}</span>
 }

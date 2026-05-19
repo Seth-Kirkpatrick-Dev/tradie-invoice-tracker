@@ -9,9 +9,7 @@ export async function proxy(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
+        getAll() { return request.cookies.getAll() },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({ request })
@@ -23,23 +21,20 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  // getSession() reads the cookie — no network call to Supabase
+  const { data: { session } } = await supabase.auth.getSession()
 
   const { pathname } = request.nextUrl
 
-  // Protected routes — redirect to login if not authenticated
   const protectedPaths = ['/dashboard', '/invoices', '/clients', '/settings', '/onboarding']
   const isProtected = protectedPaths.some(p => pathname.startsWith(p))
-
-  if (isProtected && !user) {
+  if (isProtected && !session) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Auth routes — redirect to dashboard if already logged in
   const authPaths = ['/login', '/signup']
   const isAuth = authPaths.some(p => pathname.startsWith(p))
-
-  if (isAuth && user) {
+  if (isAuth && session) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 

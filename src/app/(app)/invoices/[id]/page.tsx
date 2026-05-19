@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getUser } from '@/lib/supabase/auth'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { formatCurrency, formatDate, daysOverdue } from '@/lib/utils'
@@ -6,10 +7,10 @@ import InvoiceActions from './InvoiceActions'
 
 export default async function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (!user) return null
 
+  const supabase = await createClient()
   const { data: inv } = await supabase
     .from('invoices')
     .select('*, clients(name, email, phone, address)')
@@ -37,7 +38,6 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
         </div>
       )}
 
-      {/* Client + dates */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -57,7 +57,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
             </div>
             {inv.paid_date && (
               <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wide">Paid date</p>
+                <p className="text-xs text-gray-400 uppercase tracking-wide">Paid</p>
                 <p className="text-sm text-green-700 font-medium">{formatDate(inv.paid_date)}</p>
               </div>
             )}
@@ -71,7 +71,6 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
         )}
       </div>
 
-      {/* Line items */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
         <table className="w-full text-sm">
           <thead>
@@ -88,7 +87,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                 <td className="py-2 text-gray-800">{item.description}</td>
                 <td className="py-2 text-right text-gray-600">{item.quantity}</td>
                 <td className="py-2 text-right text-gray-600">{formatCurrency(item.unit_price, inv.currency)}</td>
-                <td className="py-2 text-right font-medium text-gray-900">{formatCurrency(item.quantity * item.unit_price, inv.currency)}</td>
+                <td className="py-2 text-right font-medium">{formatCurrency(item.quantity * item.unit_price, inv.currency)}</td>
               </tr>
             ))}
           </tbody>
@@ -107,7 +106,6 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
         </div>
       </div>
 
-      {/* Payment details */}
       {inv.payment_method && (
         <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
           <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Payment details</p>
@@ -115,7 +113,6 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
         </div>
       )}
 
-      {/* Actions */}
       <InvoiceActions invoiceId={inv.id} status={inv.status} />
     </div>
   )
@@ -123,10 +120,8 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
-    draft:   'bg-gray-100 text-gray-500',
-    sent:    'bg-blue-100 text-blue-700',
-    overdue: 'bg-red-100 text-red-700',
-    paid:    'bg-green-100 text-green-700',
+    draft: 'bg-gray-100 text-gray-500', sent: 'bg-blue-100 text-blue-700',
+    overdue: 'bg-red-100 text-red-700', paid: 'bg-green-100 text-green-700',
   }
   return <span className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize ${map[status] ?? ''}`}>{status}</span>
 }
