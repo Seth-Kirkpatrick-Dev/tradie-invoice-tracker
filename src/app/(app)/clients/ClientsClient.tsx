@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { upsertClient, deleteClient } from '@/app/actions/clients'
+import { useSupabase } from '@/hooks/useSupabase'
 import { UserPlus, Pencil, Trash2, X } from 'lucide-react'
 
 interface Client {
@@ -13,27 +14,58 @@ interface Client {
   notes: string | null
 }
 
-export default function ClientsClient({ clients }: { clients: Client[] }) {
+export default function ClientsClient({ clients: initialClients }: { clients: Client[] | null }) {
+  const supabase = useSupabase()
+  const [clients, setClients] = useState<Client[] | null>(initialClients)
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Client | null>(null)
   const [error, setError] = useState('')
   const [isPending, startTransition] = useTransition()
 
+  useEffect(() => {
+    if (initialClients !== null) return
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data } = await supabase
+        .from('clients')
+        .select('id, name, email, phone, address, notes')
+        .eq('user_id', user.id)
+        .is('deleted_at', null)
+        .order('name')
+      setClients((data ?? []) as Client[])
+    }
+    load()
+  }, [supabase, initialClients])
+
   function openAdd() { setEditing(null); setError(''); setShowModal(true) }
   function openEdit(c: Client) { setEditing(c); setError(''); setShowModal(true) }
   function closeModal() { setShowModal(false); setEditing(null); setError('') }
+
+  async function refreshClients() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const { data } = await supabase
+      .from('clients').select('id, name, email, phone, address, notes')
+      .eq('user_id', user.id).is('deleted_at', null).order('name')
+    setClients((data ?? []) as Client[])
+  }
 
   async function handleSubmit(formData: FormData) {
     startTransition(async () => {
       const result = await upsertClient(formData)
       if (result.error) { setError(result.error); return }
       closeModal()
+      await refreshClients()
     })
   }
 
   async function handleDelete(id: string, name: string) {
     if (!confirm(`Remove ${name}? Their invoices will be kept.`)) return
-    startTransition(async () => { await deleteClient(id) })
+    startTransition(async () => {
+      await deleteClient(id)
+      await refreshClients()
+    })
   }
 
   return (
@@ -45,7 +77,19 @@ export default function ClientsClient({ clients }: { clients: Client[] }) {
         </button>
       </div>
 
-      {clients.length === 0 ? (
+      {clients === null ? (
+        <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+          {[1,2,3].map(i => (
+            <div key={i} className="flex items-center justify-between px-5 py-4 animate-pulse">
+              <div className="space-y-2">
+                <div className="h-4 w-36 bg-gray-200 rounded" />
+                <div className="h-3 w-48 bg-gray-100 rounded" />
+              </div>
+              <div className="h-6 w-14 bg-gray-100 rounded" />
+            </div>
+          ))}
+        </div>
+      ) : clients.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-200 p-10 text-center">
           <p className="text-gray-400 text-sm">No clients yet.</p>
           <button onClick={openAdd} className="mt-3 text-blue-600 text-sm hover:underline">
