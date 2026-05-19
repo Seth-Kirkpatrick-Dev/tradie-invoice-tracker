@@ -15,6 +15,7 @@ const COUNTRY_OPTIONS = [
 const CURRENCY_OPTIONS = ['NZD', 'AUD', 'GBP', 'USD']
 
 export default function SettingsForm({ profile, userId }: { profile: any; userId: string }) {
+  const isPro = ['pro', 'pro_plus'].includes(profile.subscription_tier ?? '')
   const [saved, setSaved] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [currency, setCurrency] = useState(profile.currency ?? 'NZD')
@@ -166,33 +167,44 @@ export default function SettingsForm({ profile, userId }: { profile: any; userId
       </div>
 
       {/* Email reminder template */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-        <div>
-          <h2 className="font-semibold text-gray-900">Reminder email template</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Sent automatically to clients when invoices are overdue. Pro plan only.</p>
+      <div className={`bg-white rounded-xl border border-gray-200 p-6 space-y-4 ${!isPro ? 'opacity-60' : ''}`}>
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="font-semibold text-gray-900">Reminder email template</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Sent automatically to clients when invoices are overdue.</p>
+          </div>
+          {!isPro && (
+            <span className="text-xs font-medium bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full whitespace-nowrap">Pro only</span>
+          )}
         </div>
-        <div className="text-xs text-gray-400 bg-gray-50 rounded-lg p-3 space-y-1">
-          <p className="font-medium text-gray-500">Available placeholders:</p>
-          <p><code className="text-gray-600">{'{client_first_name}'}</code> <code className="text-gray-600">{'{invoice_number}'}</code> <code className="text-gray-600">{'{amount}'}</code> <code className="text-gray-600">{'{due_date}'}</code> <code className="text-gray-600">{'{days_overdue}'}</code> <code className="text-gray-600">{'{payment_method}'}</code> <code className="text-gray-600">{'{tradie_business_name}'}</code></p>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Subject line</label>
-          <input
-            name="default_email_subject"
-            type="text"
-            defaultValue={profile.default_email_subject ?? 'Friendly reminder: Invoice {invoice_number} is overdue'}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Email body</label>
-          <textarea
-            name="default_email_body"
-            rows={8}
-            defaultValue={profile.default_email_body ?? ''}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none font-mono"
-          />
-        </div>
+        {!isPro ? (
+          <p className="text-sm text-gray-500">Upgrade to Pro to customise your reminder email template.</p>
+        ) : (
+          <>
+            <div className="text-xs text-gray-400 bg-gray-50 rounded-lg p-3 space-y-1">
+              <p className="font-medium text-gray-500">Available placeholders:</p>
+              <p><code className="text-gray-600">{'{client_first_name}'}</code> <code className="text-gray-600">{'{invoice_number}'}</code> <code className="text-gray-600">{'{amount}'}</code> <code className="text-gray-600">{'{due_date}'}</code> <code className="text-gray-600">{'{days_overdue}'}</code> <code className="text-gray-600">{'{payment_method}'}</code> <code className="text-gray-600">{'{tradie_business_name}'}</code></p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Subject line</label>
+              <input
+                name="default_email_subject"
+                type="text"
+                defaultValue={profile.default_email_subject ?? 'Friendly reminder: Invoice {invoice_number} is overdue'}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email body</label>
+              <textarea
+                name="default_email_body"
+                rows={8}
+                defaultValue={profile.default_email_body ?? ''}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none font-mono"
+              />
+            </div>
+          </>
+        )}
       </div>
 
       {/* Logo upload */}
