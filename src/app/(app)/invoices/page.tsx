@@ -1,5 +1,10 @@
+import { Suspense } from 'react'
 import InvoicesClient from './InvoicesClient'
 
 export default function InvoicesPage() {
-  return <InvoicesClient />
+  return (
+    <Suspense>
+      <InvoicesClient />
+    </Suspense>
+  )
 }

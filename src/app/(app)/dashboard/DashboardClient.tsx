@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useSupabase } from '@/hooks/useSupabase'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { formatCurrency, daysOverdue } from '@/lib/utils'
 
 interface Invoice {
@@ -24,6 +25,7 @@ interface Stats {
 
 export default function DashboardClient() {
   const supabase = useSupabase()
+  const router = useRouter()
   const [stats, setStats] = useState<Stats | null>(null)
   const [invoices, setInvoices] = useState<Invoice[] | null>(null)
   const [firstName, setFirstName] = useState('')
@@ -62,9 +64,9 @@ export default function DashboardClient() {
   }, [supabase])
 
   const statCards = [
-    { label: 'Overdue',         value: stats?.overdue,   color: 'text-red-600',    bg: 'bg-red-50',    border: 'border-red-100' },
-    { label: 'Due this week',   value: stats?.dueSoon,   color: 'text-yellow-600', bg: 'bg-yellow-50', border: 'border-yellow-100' },
-    { label: 'Paid this month', value: stats?.paidMonth, color: 'text-green-600',  bg: 'bg-green-50',  border: 'border-green-100' },
+    { label: 'Overdue',         value: stats?.overdue,   color: 'text-red-600',    bg: 'bg-red-50',    border: 'border-red-100',    href: '/invoices?tab=overdue' },
+    { label: 'Due this week',   value: stats?.dueSoon,   color: 'text-yellow-600', bg: 'bg-yellow-50', border: 'border-yellow-100', href: '/invoices?tab=sent' },
+    { label: 'Paid this month', value: stats?.paidMonth, color: 'text-green-600',  bg: 'bg-green-50',  border: 'border-green-100',  href: '/invoices?tab=paid' },
   ]
 
   return (
@@ -77,25 +79,25 @@ export default function DashboardClient() {
       </div>
 
       {/* Total outstanding banner */}
-      <div className="bg-blue-600 rounded-2xl p-5 mb-6 text-white">
+      <Link href="/invoices" className="block bg-blue-600 rounded-2xl p-5 mb-6 text-white hover:bg-blue-700 transition-colors">
         <p className="text-blue-200 text-sm">Total outstanding</p>
         {stats === null ? (
           <div className="h-9 w-40 bg-blue-500 rounded animate-pulse mt-1" />
         ) : (
           <p className="text-3xl font-bold mt-0.5">{formatCurrency(stats.outstanding, currency)}</p>
         )}
-      </div>
+      </Link>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {statCards.map(s => (
-          <div key={s.label} className={`rounded-xl border p-5 ${s.bg} ${s.border}`}>
+          <Link key={s.label} href={s.href} className={`block rounded-xl border p-5 ${s.bg} ${s.border} hover:brightness-95 transition-all`}>
             <p className="text-sm text-gray-500">{s.label}</p>
             {s.value === undefined ? (
               <div className="h-8 w-28 bg-gray-200 rounded animate-pulse mt-1" />
             ) : (
               <p className={`text-2xl font-bold mt-1 ${s.color}`}>{formatCurrency(s.value, currency)}</p>
             )}
-          </div>
+          </Link>
         ))}
       </div>
 

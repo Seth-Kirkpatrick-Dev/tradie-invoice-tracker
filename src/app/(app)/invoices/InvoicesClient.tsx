@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useSupabase } from '@/hooks/useSupabase'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { formatCurrency, formatDate, daysOverdue } from '@/lib/utils'
 
 const STATUS_TABS = ['all', 'overdue', 'sent', 'draft', 'paid'] as const
@@ -29,7 +30,9 @@ function StatusBadge({ status }: { status: string }) {
 export default function InvoicesClient() {
   const supabase = useSupabase()
   const [invoices, setInvoices] = useState<Invoice[] | null>(null)
-  const [activeTab, setActiveTab] = useState<Tab>('all')
+  const searchParams = useSearchParams()
+  const initialTab = (STATUS_TABS as readonly string[]).includes(searchParams.get('tab') ?? '') ? searchParams.get('tab') as Tab : 'all'
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab)
   const [atFreeLimit, setAtFreeLimit] = useState(false)
 
   useEffect(() => {
