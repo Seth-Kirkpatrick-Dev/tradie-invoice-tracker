@@ -4,6 +4,10 @@
   color-scheme: light;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   background: #ffffff;
   color: #171717;

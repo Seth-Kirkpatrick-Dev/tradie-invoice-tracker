@@ -79,42 +79,45 @@ export default function NewInvoiceForm({ clients, defaultCurrency, defaultTaxRat
       {/* Line items */}
       <div className="bg-white rounded-xl border border-gray-200 p-5">
         <h2 className="font-semibold text-gray-900 mb-4">Line items</h2>
-        <div className="space-y-2">
+        <div className="space-y-3">
           {lineItems.map((item, idx) => (
-            <div key={idx} className="flex gap-2 items-start">
-              <input
-                type="text"
-                value={item.description}
-                onChange={e => updateLine(idx, 'description', e.target.value)}
-                placeholder="Description"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="number"
-                value={item.quantity}
-                min="0"
-                step="0.01"
-                onChange={e => updateLine(idx, 'quantity', parseFloat(e.target.value) || 0)}
-                placeholder="Qty"
-                className="w-16 px-2 py-2 border border-gray-300 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="number"
-                value={item.unit_price}
-                min="0"
-                step="0.01"
-                onChange={e => updateLine(idx, 'unit_price', parseFloat(e.target.value) || 0)}
-                placeholder="Price"
-                className="w-24 px-2 py-2 border border-gray-300 rounded-lg text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <div className="w-20 text-right text-sm text-gray-600 py-2">
-                {fmt(item.quantity * item.unit_price)}
+            <div key={idx} className="space-y-1.5 pb-3 border-b border-gray-100 last:border-0 last:pb-0">
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={item.description}
+                  onChange={e => updateLine(idx, 'description', e.target.value)}
+                  placeholder="Description"
+                  className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                {lineItems.length > 1 && (
+                  <button type="button" onClick={() => removeLine(idx)} className="p-2 text-gray-400 hover:text-red-500 transition-colors shrink-0">
+                    <Trash2 size={15} />
+                  </button>
+                )}
               </div>
-              {lineItems.length > 1 && (
-                <button type="button" onClick={() => removeLine(idx)} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
-                  <Trash2 size={15} />
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  value={item.quantity}
+                  min="0"
+                  step="0.01"
+                  onChange={e => updateLine(idx, 'quantity', parseFloat(e.target.value) || 0)}
+                  placeholder="Qty"
+                  className="w-14 shrink-0 px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <span className="text-gray-400 text-sm shrink-0">×</span>
+                <input
+                  type="number"
+                  value={item.unit_price}
+                  min="0"
+                  step="0.01"
+                  onChange={e => updateLine(idx, 'unit_price', parseFloat(e.target.value) || 0)}
+                  placeholder="Unit price"
+                  className="flex-1 min-w-0 px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-600 shrink-0 w-20 text-right tabular-nums">{fmt(item.quantity * item.unit_price)}</span>
+              </div>
             </div>
           ))}
         </div>

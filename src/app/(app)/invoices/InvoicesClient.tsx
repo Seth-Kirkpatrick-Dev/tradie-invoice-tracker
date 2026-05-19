@@ -79,7 +79,7 @@ export default function InvoicesClient() {
         )}
       </div>
 
-      <div className="overflow-x-auto pb-1 mb-5">
+      <div className="w-full overflow-x-auto pb-1 mb-5">
         <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
           {STATUS_TABS.map(tab => (
             <button
