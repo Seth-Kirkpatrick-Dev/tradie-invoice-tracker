@@ -38,10 +38,11 @@ export default function DashboardClient() {
       const sevenDaysLater = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]
       const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
 
-      const [profileRes, overdueRes, dueSoonRes, paidRes, recentRes] = await Promise.all([
+      const [profileRes, overdueRes, dueSoonRes, allUnpaidRes, paidRes, recentRes] = await Promise.all([
         supabase.from('profiles').select('first_name, currency').eq('id', user.id).single(),
         supabase.from('invoices').select('total').eq('user_id', user.id).eq('status', 'overdue'),
         supabase.from('invoices').select('total').eq('user_id', user.id).in('status', ['draft', 'sent']).lte('due_date', sevenDaysLater).gte('due_date', today),
+        supabase.from('invoices').select('total').eq('user_id', user.id).in('status', ['sent', 'overdue']),
         supabase.from('invoices').select('total').eq('user_id', user.id).eq('status', 'paid').gte('paid_date', startOfMonth),
         supabase.from('invoices').select('id, invoice_number, total, due_date, status, currency, clients(name)').eq('user_id', user.id).in('status', ['overdue', 'sent', 'draft']).order('due_date', { ascending: true }).limit(5),
       ])
@@ -49,13 +50,11 @@ export default function DashboardClient() {
       const c = profileRes.data?.currency ?? 'NZD'
       setCurrency(c)
       setFirstName(profileRes.data?.first_name ?? '')
-      const overdueTotal = (overdueRes.data ?? []).reduce((s, r) => s + r.total, 0)
-      const dueSoonTotal = (dueSoonRes.data ?? []).reduce((s, r) => s + r.total, 0)
       setStats({
-        overdue:      overdueTotal,
-        dueSoon:      dueSoonTotal,
-        outstanding:  overdueTotal + dueSoonTotal,
-        paidMonth:    (paidRes.data ?? []).reduce((s, r) => s + r.total, 0),
+        overdue:     (overdueRes.data    ?? []).reduce((s, r) => s + r.total, 0),
+        dueSoon:     (dueSoonRes.data    ?? []).reduce((s, r) => s + r.total, 0),
+        outstanding: (allUnpaidRes.data  ?? []).reduce((s, r) => s + r.total, 0),
+        paidMonth:   (paidRes.data       ?? []).reduce((s, r) => s + r.total, 0),
       })
       setInvoices((recentRes.data ?? []) as unknown as Invoice[])
     }
