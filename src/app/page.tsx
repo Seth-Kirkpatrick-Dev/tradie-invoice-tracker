@@ -174,7 +174,6 @@ const proTier = [
   'Everything in Free',
   'Unlimited invoices',
   'Automatic reminder schedule',
-  'PDF invoice generation',
   'Email invoice to client',
   'Custom email templates',
   'Custom branding on PDFs',
