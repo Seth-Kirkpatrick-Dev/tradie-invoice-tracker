@@ -37,6 +37,7 @@ export async function saveOnboarding(formData: FormData) {
       tax_label,
       bank_account_details: (formData.get('bank_account_details') as string) || null,
       logo_url:             (formData.get('logo_url')             as string) || null,
+      reminder_schedule:    JSON.parse((formData.get('reminder_schedule') as string) || '[1,7,14,21]'),
       onboarding_completed: true,
     })
     .eq('id', user.id)

@@ -26,10 +26,17 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="px-6 py-8 max-w-2xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
-        <Link href="/invoices" className="text-gray-400 hover:text-gray-600 text-sm">← Invoices</Link>
-        <h1 className="text-2xl font-bold text-gray-900">{inv.invoice_number}</h1>
-        <StatusBadge status={inv.status} />
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <Link href="/invoices" className="text-gray-400 hover:text-gray-600 text-sm">← Invoices</Link>
+          <h1 className="text-2xl font-bold text-gray-900">{inv.invoice_number}</h1>
+          <StatusBadge status={inv.status} />
+        </div>
+        {inv.status !== 'paid' && (
+          <Link href={`/invoices/${inv.id}/edit`} className="text-sm border border-gray-300 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
+            Edit
+          </Link>
+        )}
       </div>
 
       {days !== null && (

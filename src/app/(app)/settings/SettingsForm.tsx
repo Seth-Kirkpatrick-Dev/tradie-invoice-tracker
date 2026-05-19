@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { saveOnboarding } from '@/app/actions/profile'
+import { X, Plus } from 'lucide-react'
 
 const COUNTRY_OPTIONS = [
   { value: 'NZ', label: 'New Zealand', currency: 'NZD', tax_rate: '15', tax_label: 'GST' },
@@ -18,6 +19,10 @@ export default function SettingsForm({ profile, userId }: { profile: any; userId
   const [currency, setCurrency] = useState(profile.currency ?? 'NZD')
   const [taxLabel, setTaxLabel] = useState(profile.tax_label ?? 'GST')
   const [taxRate, setTaxRate] = useState(String(Math.round((profile.tax_rate ?? 0.15) * 100)))
+  const [schedule, setSchedule] = useState<number[]>(
+    Array.isArray(profile.reminder_schedule) ? profile.reminder_schedule : [1, 7, 14, 21]
+  )
+  const [scheduleInput, setScheduleInput] = useState('')
 
   function handleCountryChange(value: string) {
     const opt = COUNTRY_OPTIONS.find(o => o.value === value)
@@ -93,6 +98,47 @@ export default function SettingsForm({ profile, userId }: { profile: any; userId
           <label className="block text-sm font-medium text-gray-700 mb-1">GST / Tax number <span className="text-gray-400">(optional)</span></label>
           <input name="tax_number" type="text" defaultValue={profile.tax_number ?? ''} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
+      </div>
+
+      {/* Reminder schedule */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+        <div>
+          <h2 className="font-semibold text-gray-900">Auto-reminder schedule</h2>
+          <p className="text-xs text-gray-400 mt-0.5">Days after due date to send automatic reminders. Pro plan only.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {schedule.sort((a, b) => a - b).map(day => (
+            <span key={day} className="flex items-center gap-1 bg-blue-50 text-blue-700 text-sm px-3 py-1 rounded-full">
+              Day {day}
+              <button type="button" onClick={() => setSchedule(s => s.filter(d => d !== day))} className="text-blue-400 hover:text-blue-700 ml-1">
+                <X size={12} />
+              </button>
+            </span>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="number"
+            min="1"
+            max="90"
+            value={scheduleInput}
+            onChange={e => setScheduleInput(e.target.value)}
+            placeholder="Add day"
+            className="w-24 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            type="button"
+            onClick={() => {
+              const d = parseInt(scheduleInput)
+              if (d > 0 && !schedule.includes(d)) setSchedule(s => [...s, d])
+              setScheduleInput('')
+            }}
+            className="flex items-center gap-1 text-sm text-blue-600 border border-blue-300 px-3 py-1.5 rounded-lg hover:bg-blue-50"
+          >
+            <Plus size={14} /> Add
+          </button>
+        </div>
+        <input type="hidden" name="reminder_schedule" value={JSON.stringify(schedule)} />
       </div>
 
       {/* Hidden to preserve onboarding state */}

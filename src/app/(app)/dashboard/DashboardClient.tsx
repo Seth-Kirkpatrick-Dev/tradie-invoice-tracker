@@ -18,6 +18,7 @@ interface Invoice {
 interface Stats {
   overdue: number
   dueSoon: number
+  outstanding: number
   paidMonth: number
 }
 
@@ -48,10 +49,13 @@ export default function DashboardClient() {
       const c = profileRes.data?.currency ?? 'NZD'
       setCurrency(c)
       setFirstName(profileRes.data?.first_name ?? '')
+      const overdueTotal = (overdueRes.data ?? []).reduce((s, r) => s + r.total, 0)
+      const dueSoonTotal = (dueSoonRes.data ?? []).reduce((s, r) => s + r.total, 0)
       setStats({
-        overdue:   (overdueRes.data  ?? []).reduce((s, r) => s + r.total, 0),
-        dueSoon:   (dueSoonRes.data  ?? []).reduce((s, r) => s + r.total, 0),
-        paidMonth: (paidRes.data     ?? []).reduce((s, r) => s + r.total, 0),
+        overdue:      overdueTotal,
+        dueSoon:      dueSoonTotal,
+        outstanding:  overdueTotal + dueSoonTotal,
+        paidMonth:    (paidRes.data ?? []).reduce((s, r) => s + r.total, 0),
       })
       setInvoices((recentRes.data ?? []) as unknown as Invoice[])
     }
@@ -59,18 +63,28 @@ export default function DashboardClient() {
   }, [supabase])
 
   const statCards = [
-    { label: 'Overdue',         value: stats?.overdue,    color: 'text-red-600',    bg: 'bg-red-50',    border: 'border-red-100' },
-    { label: 'Due this week',   value: stats?.dueSoon,    color: 'text-yellow-600', bg: 'bg-yellow-50', border: 'border-yellow-100' },
-    { label: 'Paid this month', value: stats?.paidMonth,  color: 'text-green-600',  bg: 'bg-green-50',  border: 'border-green-100' },
+    { label: 'Overdue',         value: stats?.overdue,   color: 'text-red-600',    bg: 'bg-red-50',    border: 'border-red-100' },
+    { label: 'Due this week',   value: stats?.dueSoon,   color: 'text-yellow-600', bg: 'bg-yellow-50', border: 'border-yellow-100' },
+    { label: 'Paid this month', value: stats?.paidMonth, color: 'text-green-600',  bg: 'bg-green-50',  border: 'border-green-100' },
   ]
 
   return (
     <div className="px-6 py-8 max-w-4xl mx-auto">
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">
           G&apos;day{firstName ? `, ${firstName}` : ''}!
         </h1>
         <p className="text-gray-500 text-sm mt-0.5">Here&apos;s your invoice summary.</p>
+      </div>
+
+      {/* Total outstanding banner */}
+      <div className="bg-blue-600 rounded-2xl p-5 mb-6 text-white">
+        <p className="text-blue-200 text-sm">Total outstanding</p>
+        {stats === null ? (
+          <div className="h-9 w-40 bg-blue-500 rounded animate-pulse mt-1" />
+        ) : (
+          <p className="text-3xl font-bold mt-0.5">{formatCurrency(stats.outstanding, currency)}</p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">

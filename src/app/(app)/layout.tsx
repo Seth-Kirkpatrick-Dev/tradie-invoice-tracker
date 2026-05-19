@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getProfile } from '@/lib/supabase/auth'
 import AppNav from '@/components/AppNav'
+import NotificationBell from '@/components/NotificationBell'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const profile = await getProfile()
@@ -11,11 +12,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <aside className="hidden md:flex md:flex-col md:w-56 md:fixed md:inset-y-0 bg-white border-r border-gray-200">
-        <div className="px-4 py-5 border-b border-gray-100">
-          <span className="font-bold text-gray-900 text-lg">PaidUp</span>
-          {profile.business_name && (
-            <p className="text-xs text-gray-400 mt-0.5 truncate">{profile.business_name}</p>
-          )}
+        <div className="px-4 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div>
+            <span className="font-bold text-gray-900 text-lg">PaidUp</span>
+            {profile.business_name && (
+              <p className="text-xs text-gray-400 mt-0.5 truncate">{profile.business_name}</p>
+            )}
+          </div>
+          <NotificationBell />
         </div>
         <AppNav />
       </aside>

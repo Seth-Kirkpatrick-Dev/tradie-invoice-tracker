@@ -116,6 +116,49 @@ export async function updateInvoiceStatus(invoiceId: string, status: string) {
   return { error: error?.message ?? null }
 }
 
+export async function updateInvoice(invoiceId: string, formData: FormData) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const lineItemsRaw = formData.get('line_items') as string
+  const lineItems = JSON.parse(lineItemsRaw || '[]')
+  const subtotal = lineItems.reduce(
+    (sum: number, item: { quantity: number; unit_price: number }) =>
+      sum + item.quantity * item.unit_price,
+    0
+  )
+  const taxRateVal = parseFloat(formData.get('tax_rate') as string) / 100
+  const taxAmount  = subtotal * taxRateVal
+  const total      = subtotal + taxAmount
+
+  const { error } = await supabase
+    .from('invoices')
+    .update({
+      client_id:             (formData.get('client_id') as string) || null,
+      description:           (formData.get('description') as string)?.trim() || null,
+      line_items:            lineItems,
+      subtotal,
+      tax_rate:              taxRateVal,
+      tax_label:             formData.get('tax_label') as string,
+      tax_amount:            taxAmount,
+      total,
+      issue_date:            (formData.get('issue_date') as string) || null,
+      due_date:              (formData.get('due_date')   as string) || null,
+      payment_method:        (formData.get('payment_method') as string)?.trim() || null,
+      notes:                 (formData.get('notes') as string)?.trim() || null,
+      auto_reminders_enabled: formData.get('auto_reminders_enabled') === 'true',
+    })
+    .eq('id', invoiceId)
+    .eq('user_id', user.id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/invoices')
+  revalidatePath('/dashboard')
+  redirect(`/invoices/${invoiceId}`)
+}
+
 export async function deleteInvoice(invoiceId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
