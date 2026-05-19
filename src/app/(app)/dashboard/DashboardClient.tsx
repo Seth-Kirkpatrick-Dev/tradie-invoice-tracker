@@ -41,7 +41,7 @@ export default function DashboardClient() {
       const [profileRes, overdueRes, dueSoonRes, allUnpaidRes, paidRes, recentRes] = await Promise.all([
         supabase.from('profiles').select('first_name, currency').eq('id', user.id).single(),
         supabase.from('invoices').select('total').eq('user_id', user.id).eq('status', 'overdue'),
-        supabase.from('invoices').select('total').eq('user_id', user.id).in('status', ['draft', 'sent']).lte('due_date', sevenDaysLater).gte('due_date', today),
+        supabase.from('invoices').select('total').eq('user_id', user.id).eq('status', 'sent').lte('due_date', sevenDaysLater).gte('due_date', today),
         supabase.from('invoices').select('total').eq('user_id', user.id).in('status', ['sent', 'overdue']),
         supabase.from('invoices').select('total').eq('user_id', user.id).eq('status', 'paid').gte('paid_date', startOfMonth),
         supabase.from('invoices').select('id, invoice_number, total, due_date, status, currency, clients(name)').eq('user_id', user.id).in('status', ['overdue', 'sent', 'draft']).order('due_date', { ascending: true }).limit(5),

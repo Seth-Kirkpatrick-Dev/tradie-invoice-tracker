@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await supabase
     .from('invoices')
     .update({ status: 'overdue' })
-    .in('status', ['sent', 'draft'])
+    .eq('status', 'sent')
     .lt('due_date', today)
     .not('due_date', 'is', null)
     .select('id')

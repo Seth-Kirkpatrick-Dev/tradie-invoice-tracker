@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { getUser } from '@/lib/supabase/auth'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import EditInvoiceForm from './EditInvoiceForm'
 
@@ -16,6 +16,7 @@ export default async function EditInvoicePage({ params }: { params: Promise<{ id
   ])
 
   if (!invRes.data) notFound()
+  if (invRes.data.status === 'paid') redirect(`/invoices/${id}`)
 
   return (
     <div className="px-6 py-8 max-w-2xl mx-auto">

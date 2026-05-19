@@ -96,26 +96,28 @@ export async function GET(request: NextRequest) {
 
     const emailSent = !!process.env.RESEND_API_KEY // will be true once wired up
 
-    // Log the reminder
+    // Log the reminder for deduplication (even if not yet sending emails)
     await supabase.from('reminders_log').insert({
-      invoice_id:     inv.id,
-      user_id:        profile.id,
-      channel:        'email',
+      invoice_id:      inv.id,
+      user_id:         profile.id,
+      channel:         'email',
       recipient_email: client.email,
       subject,
-      content:        body,
-      days_overdue:   daysOver,
-      status:         emailSent ? 'sent' : 'sent', // logged regardless — email sending is separate
+      content:         body,
+      days_overdue:    daysOver,
+      status:          emailSent ? 'sent' : 'queued',
     })
 
-    // Create in-app notification
-    await supabase.from('notifications').insert({
-      user_id:    profile.id,
-      type:       'reminder_sent',
-      title:      `Reminder sent for ${inv.invoice_number}`,
-      body:       `A ${daysOver}-day overdue reminder was sent to ${client.name}.`,
-      invoice_id: inv.id,
-    })
+    // Only create a notification when email was actually sent
+    if (emailSent) {
+      await supabase.from('notifications').insert({
+        user_id:    profile.id,
+        type:       'reminder_sent',
+        title:      `Reminder sent for ${inv.invoice_number}`,
+        body:       `A ${daysOver}-day overdue reminder was sent to ${client.name}.`,
+        invoice_id: inv.id,
+      })
+    }
 
     sent++
   }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { saveOnboarding } from '@/app/actions/profile'
+import { saveSettings } from '@/app/actions/profile'
 import { X, Plus } from 'lucide-react'
 
 const COUNTRY_OPTIONS = [
@@ -30,11 +30,12 @@ export default function SettingsForm({ profile, userId }: { profile: any; userId
   }
 
   async function handleSubmit(formData: FormData) {
-    formData.set('onboarding_completed', 'true')
     startTransition(async () => {
-      await saveOnboarding(formData)
-      setSaved(true)
-      setTimeout(() => setSaved(false), 3000)
+      const result = await saveSettings(formData)
+      if (!result.error) {
+        setSaved(true)
+        setTimeout(() => setSaved(false), 3000)
+      }
     })
   }
 

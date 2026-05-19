@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, useEffect } from 'react'
+import { useState, useTransition, useEffect, useCallback } from 'react'
 import { upsertClient, deleteClient } from '@/app/actions/clients'
 import { useSupabase } from '@/hooks/useSupabase'
 import { UserPlus, Pencil, Trash2, X } from 'lucide-react'
@@ -38,9 +38,15 @@ export default function ClientsClient({ clients: initialClients }: { clients: Cl
     load()
   }, [supabase, initialClients])
 
+  const closeModal = useCallback(() => { setShowModal(false); setEditing(null); setError('') }, [])
   function openAdd() { setEditing(null); setError(''); setShowModal(true) }
   function openEdit(c: Client) { setEditing(c); setError(''); setShowModal(true) }
-  function closeModal() { setShowModal(false); setEditing(null); setError('') }
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) { if (e.key === 'Escape') closeModal() }
+    if (showModal) document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [showModal, closeModal])
 
   async function refreshClients() {
     const { data: { user } } = await supabase.auth.getUser()

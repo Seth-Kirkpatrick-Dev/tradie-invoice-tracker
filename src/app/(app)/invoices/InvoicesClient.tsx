@@ -46,16 +46,16 @@ export default function InvoicesClient() {
 
       if (activeTab !== 'all') query = query.eq('status', activeTab)
 
-      const [invoicesRes, profileRes] = await Promise.all([
+      const [invoicesRes, profileRes, activeCountRes] = await Promise.all([
         query,
         supabase.from('profiles').select('subscription_tier').eq('id', user.id).single(),
+        supabase.from('invoices').select('id', { count: 'exact', head: true }).eq('user_id', user.id).in('status', ['draft', 'sent', 'overdue']),
       ])
 
       const data = (invoicesRes.data ?? []) as unknown as Invoice[]
       setInvoices(data)
 
-      const activeCount = data.filter(i => ['draft','sent','overdue'].includes(i.status)).length
-      setAtFreeLimit(profileRes.data?.subscription_tier === 'free' && activeCount >= 5)
+      setAtFreeLimit(profileRes.data?.subscription_tier === 'free' && (activeCountRes.count ?? 0) >= 5)
     }
     load()
   }, [supabase, activeTab])

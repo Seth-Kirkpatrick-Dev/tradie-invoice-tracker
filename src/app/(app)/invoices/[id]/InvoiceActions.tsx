@@ -13,6 +13,7 @@ export default function InvoiceActions({ invoiceId, status }: { invoiceId: strin
     startTransition(async () => {
       const result = await markAsPaid(invoiceId)
       if (result.error) setError(result.error)
+      else router.refresh()
     })
   }
 
@@ -20,6 +21,7 @@ export default function InvoiceActions({ invoiceId, status }: { invoiceId: strin
     startTransition(async () => {
       const result = await updateInvoiceStatus(invoiceId, newStatus)
       if (result.error) setError(result.error)
+      else router.refresh()
     })
   }
 

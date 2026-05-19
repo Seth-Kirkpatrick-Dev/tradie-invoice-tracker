@@ -25,6 +25,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </aside>
 
       <div className="flex-1 md:ml-56 pb-16 md:pb-0">
+        <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between md:hidden">
+          <span className="font-bold text-gray-900">PaidUp</span>
+          <NotificationBell />
+        </div>
         {children}
       </div>
 
