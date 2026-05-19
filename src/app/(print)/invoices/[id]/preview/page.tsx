@@ -24,6 +24,7 @@ export default async function InvoicePreviewPage({ params }: { params: Promise<{
 
   return (
     <>
+      <PrintButton />
       <style>{`
         @media print {
           @page { margin: 1.5cm; size: A4; }
@@ -145,8 +146,6 @@ export default async function InvoicePreviewPage({ params }: { params: Promise<{
           )}
         </div>
       </div>
-
-      <PrintButton />
     </>
   )
 }
