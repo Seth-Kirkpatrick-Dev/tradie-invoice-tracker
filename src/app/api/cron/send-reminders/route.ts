@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { Resend } from 'resend'
 
 export async function GET(request: NextRequest) {
   if (request.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -90,11 +91,22 @@ export async function GET(request: NextRequest) {
       currency:             inv.currency,
     })
 
-    // TODO: send email via Resend when RESEND_API_KEY is available
-    // const resend = new Resend(process.env.RESEND_API_KEY)
-    // await resend.emails.send({ from: '...', to: client.email, subject, html: body })
-
-    const emailSent = !!process.env.RESEND_API_KEY // will be true once wired up
+    let emailSent = false
+    if (process.env.RESEND_API_KEY) {
+      const resend = new Resend(process.env.RESEND_API_KEY)
+      const from = process.env.RESEND_FROM_EMAIL ?? 'onboarding@resend.dev'
+      const { error: sendError } = await resend.emails.send({
+        from,
+        to: client.email,
+        subject,
+        html: body.replace(/\n/g, '<br>'),
+      })
+      if (sendError) {
+        console.error(`send-reminders email error for ${inv.invoice_number}:`, sendError)
+      } else {
+        emailSent = true
+      }
+    }
 
     // Log the reminder for deduplication (even if not yet sending emails)
     await supabase.from('reminders_log').insert({
