@@ -30,7 +30,9 @@ function buildProfilePayload(formData: FormData) {
     tax_label,
     bank_account_details: (formData.get('bank_account_details') as string) || null,
     logo_url:             (formData.get('logo_url')             as string) || null,
-    reminder_schedule:    JSON.parse((formData.get('reminder_schedule') as string) || '[1,7,14,21]'),
+    reminder_schedule:       JSON.parse((formData.get('reminder_schedule') as string) || '[1,7,14,21]'),
+    default_email_subject:   (formData.get('default_email_subject') as string) || null,
+    default_email_body:      (formData.get('default_email_body')    as string) || null,
     onboarding_completed: true,
   }
 }

@@ -166,6 +166,7 @@ const features = [
 const freeTier = [
   'Up to 5 active invoices',
   'Client list',
+  'PDF invoice generation',
   'Manual reminder emails',
   'Dashboard overview',
 ]
@@ -176,5 +177,4 @@ const proTier = [
   'Automatic reminder schedule',
   'Email invoice to client',
   'Custom email templates',
-  'Custom branding on PDFs',
 ]
