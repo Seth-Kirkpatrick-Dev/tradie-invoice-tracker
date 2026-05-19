@@ -79,7 +79,7 @@ export default function DashboardClient() {
       </div>
 
       {/* Total outstanding banner */}
-      <Link href="/invoices?tab=outstanding" className="block bg-blue-600 rounded-2xl p-5 mb-6 text-white hover:bg-blue-700 transition-colors">
+      <Link href="/invoices?tab=outstanding" className="block bg-blue-600 rounded-2xl p-5 mb-6 text-white hover:bg-blue-700 transition-colors touch-manipulation">
         <p className="text-blue-200 text-sm">Total outstanding</p>
         {stats === null ? (
           <div className="h-9 w-40 bg-blue-500 rounded animate-pulse mt-1" />
@@ -90,7 +90,7 @@ export default function DashboardClient() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {statCards.map(s => (
-          <Link key={s.label} href={s.href} className={`block rounded-xl border p-5 ${s.bg} ${s.border} hover:brightness-95 transition-all`}>
+          <Link key={s.label} href={s.href} className={`block rounded-xl border p-5 ${s.bg} ${s.border} hover:brightness-95 transition-all touch-manipulation`}>
             <p className="text-sm text-gray-500">{s.label}</p>
             {s.value === undefined ? (
               <div className="h-8 w-28 bg-gray-200 rounded animate-pulse mt-1" />
