@@ -30,6 +30,7 @@ function StatusBadge({ status }: { status: string }) {
 export default function InvoicesClient() {
   const supabase = useSupabase()
   const [invoices, setInvoices] = useState<Invoice[] | null>(null)
+  const [search, setSearch] = useState('')
   const searchParams = useSearchParams()
   const initialTab = (STATUS_TABS as readonly string[]).includes(searchParams.get('tab') ?? '') ? searchParams.get('tab') as Tab : 'all'
   const [activeTab, setActiveTab] = useState<Tab>(initialTab)
@@ -66,6 +67,16 @@ export default function InvoicesClient() {
 
   return (
     <div className="px-6 py-8 max-w-4xl mx-auto">
+      <div className="mb-4">
+        <input
+          type="search"
+          placeholder="Search invoices or clients…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        />
+      </div>
+
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Invoices</h1>
         {atFreeLimit ? (
@@ -95,8 +106,15 @@ export default function InvoicesClient() {
         </div>
       </div>
 
+      {(() => {
+        const q = search.trim().toLowerCase()
+        const displayed = !q || invoices === null ? invoices : invoices.filter(inv =>
+          inv.invoice_number.toLowerCase().includes(q) ||
+          (inv.clients?.name ?? '').toLowerCase().includes(q)
+        )
+        return (
       <div className="bg-white rounded-xl border border-gray-200">
-        {invoices === null ? (
+        {displayed === null ? (
           <div className="divide-y divide-gray-100">
             {[1,2,3,4].map(i => (
               <div key={i} className="flex items-center justify-between px-5 py-4 animate-pulse">
@@ -108,15 +126,16 @@ export default function InvoicesClient() {
               </div>
             ))}
           </div>
-        ) : invoices.length === 0 ? (
+        ) : displayed.length === 0 ? (
           <div className="p-10 text-center text-gray-400 text-sm">
-            {activeTab === 'all' ? <>No invoices yet. <Link href="/invoices/new" className="text-blue-600 hover:underline">Add your first one →</Link></> :
-             activeTab === 'outstanding' ? 'Nothing outstanding — you\'re all caught up!' :
+            {search.trim() ? `No invoices matching "${search.trim()}".` :
+             activeTab === 'all' ? <>No invoices yet. <Link href="/invoices/new" className="text-blue-600 hover:underline">Add your first one →</Link></> :
+             activeTab === 'outstanding' ? "Nothing outstanding — you're all caught up!" :
              `No ${activeTab} invoices.`}
           </div>
         ) : (
           <ul className="divide-y divide-gray-100">
-            {invoices.map(inv => {
+            {displayed.map(inv => {
               const days = inv.status === 'overdue' ? daysOverdue(inv.due_date) : null
               return (
                 <li key={inv.id}>
@@ -139,6 +158,8 @@ export default function InvoicesClient() {
           </ul>
         )}
       </div>
+        )
+      })()}
     </div>
   )
 }

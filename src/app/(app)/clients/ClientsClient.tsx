@@ -3,6 +3,7 @@
 import { useState, useTransition, useEffect, useCallback } from 'react'
 import { upsertClient, deleteClient } from '@/app/actions/clients'
 import { useSupabase } from '@/hooks/useSupabase'
+import Link from 'next/link'
 import { UserPlus, Pencil, Trash2, X } from 'lucide-react'
 
 interface Client {
@@ -106,13 +107,13 @@ export default function ClientsClient({ clients: initialClients }: { clients: Cl
         <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
           {clients.map(c => (
             <div key={c.id} className="flex items-center justify-between px-5 py-4">
-              <div>
+              <Link href={`/clients/${c.id}`} className="flex-1 min-w-0 mr-3">
                 <p className="font-medium text-gray-900">{c.name}</p>
                 <p className="text-sm text-gray-400 mt-0.5">
                   {[c.email, c.phone].filter(Boolean).join(' · ') || 'No contact info'}
                 </p>
-              </div>
-              <div className="flex items-center gap-2">
+              </Link>
+              <div className="flex items-center gap-2 shrink-0">
                 <button onClick={() => openEdit(c)} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
                   <Pencil size={15} />
                 </button>

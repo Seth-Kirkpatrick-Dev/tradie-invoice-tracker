@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useRef } from 'react'
 import { saveSettings } from '@/app/actions/profile'
+import { createClient } from '@/lib/supabase/client'
 import { X, Plus } from 'lucide-react'
 
 const COUNTRY_OPTIONS = [
@@ -17,6 +18,28 @@ export default function SettingsForm({ profile, userId }: { profile: any; userId
   const [saved, setSaved] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [currency, setCurrency] = useState(profile.currency ?? 'NZD')
+  const [logoUrl, setLogoUrl] = useState(profile.logo_url ?? '')
+  const [logoPreview, setLogoPreview] = useState(profile.logo_url ?? '')
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 2 * 1024 * 1024) { setUploadError('Logo must be under 2 MB'); return }
+    setUploading(true); setUploadError('')
+    const supabase = createClient()
+    const ext = file.name.split('.').pop()
+    const path = `${userId}/logo.${ext}`
+    const { error } = await supabase.storage.from('business-logos').upload(path, file, { upsert: true })
+    if (error) { setUploadError(error.message) } else {
+      const { data } = supabase.storage.from('business-logos').getPublicUrl(path)
+      setLogoUrl(data.publicUrl)
+      setLogoPreview(URL.createObjectURL(file))
+    }
+    setUploading(false)
+  }
   const [taxLabel, setTaxLabel] = useState(profile.tax_label ?? 'GST')
   const [taxRate, setTaxRate] = useState(String(Math.round((profile.tax_rate ?? 0.15) * 100)))
   const [schedule, setSchedule] = useState<number[]>(
@@ -142,8 +165,28 @@ export default function SettingsForm({ profile, userId }: { profile: any; userId
         <input type="hidden" name="reminder_schedule" value={JSON.stringify(schedule)} />
       </div>
 
-      {/* Hidden to preserve onboarding state */}
-      <input type="hidden" name="logo_url" value={profile.logo_url ?? ''} />
+      {/* Logo upload */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+        <h2 className="font-semibold text-gray-900">Business logo</h2>
+        <div className="flex items-center gap-4">
+          {logoPreview ? (
+            <img src={logoPreview} alt="Logo" className="w-16 h-16 rounded-lg object-contain border border-gray-200 bg-gray-50" />
+          ) : (
+            <div className="w-16 h-16 rounded-lg border border-dashed border-gray-300 flex items-center justify-center text-gray-300 text-xs">Logo</div>
+          )}
+          <div>
+            <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50">
+              {uploading ? 'Uploading…' : logoPreview ? 'Change logo' : 'Upload logo'}
+            </button>
+            <p className="text-xs text-gray-400 mt-1">PNG, JPG or WebP — max 2 MB</p>
+            {uploadError && <p className="text-xs text-red-600 mt-1">{uploadError}</p>}
+          </div>
+        </div>
+        <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={handleLogoUpload} className="hidden" />
+      </div>
+
+      <input type="hidden" name="logo_url" value={logoUrl} />
 
       <button type="submit" disabled={isPending} className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors">
         {isPending ? 'Saving…' : 'Save settings'}

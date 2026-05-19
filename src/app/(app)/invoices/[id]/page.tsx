@@ -120,6 +120,14 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
         </div>
       )}
 
+      <Link
+        href={`/invoices/${inv.id}/preview`}
+        target="_blank"
+        className="flex items-center justify-center gap-2 w-full border border-gray-300 text-gray-600 py-3 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors mb-3"
+      >
+        Print / Save PDF
+      </Link>
+
       <InvoiceActions invoiceId={inv.id} status={inv.status} />
     </div>
   )
