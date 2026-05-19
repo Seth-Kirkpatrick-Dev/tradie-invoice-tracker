@@ -79,7 +79,7 @@ export default function DashboardClient() {
       </div>
 
       {/* Total outstanding banner */}
-      <Link href="/invoices" className="block bg-blue-600 rounded-2xl p-5 mb-6 text-white hover:bg-blue-700 transition-colors">
+      <Link href="/invoices?tab=outstanding" className="block bg-blue-600 rounded-2xl p-5 mb-6 text-white hover:bg-blue-700 transition-colors">
         <p className="text-blue-200 text-sm">Total outstanding</p>
         {stats === null ? (
           <div className="h-9 w-40 bg-blue-500 rounded animate-pulse mt-1" />

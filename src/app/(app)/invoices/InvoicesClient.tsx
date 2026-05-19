@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { formatCurrency, formatDate, daysOverdue } from '@/lib/utils'
 
-const STATUS_TABS = ['all', 'overdue', 'sent', 'draft', 'paid'] as const
+const STATUS_TABS = ['all', 'outstanding', 'overdue', 'sent', 'draft', 'paid'] as const
 type Tab = typeof STATUS_TABS[number]
 
 interface Invoice {
@@ -47,7 +47,8 @@ export default function InvoicesClient() {
         .eq('user_id', user.id)
         .order('due_date', { ascending: true, nullsFirst: false })
 
-      if (activeTab !== 'all') query = query.eq('status', activeTab)
+      if (activeTab === 'outstanding') query = query.in('status', ['sent', 'overdue'])
+      else if (activeTab !== 'all') query = query.eq('status', activeTab)
 
       const [invoicesRes, profileRes, activeCountRes] = await Promise.all([
         query,
@@ -78,18 +79,20 @@ export default function InvoicesClient() {
         )}
       </div>
 
-      <div className="flex gap-1 mb-5 bg-gray-100 rounded-lg p-1 w-fit">
-        {STATUS_TABS.map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-3 py-1.5 rounded-md text-sm font-medium capitalize transition-colors ${
-              activeTab === tab ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
+      <div className="overflow-x-auto pb-1 mb-5">
+        <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+          {STATUS_TABS.map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium capitalize whitespace-nowrap transition-colors ${
+                activeTab === tab ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200">
@@ -107,8 +110,9 @@ export default function InvoicesClient() {
           </div>
         ) : invoices.length === 0 ? (
           <div className="p-10 text-center text-gray-400 text-sm">
-            No invoices{activeTab !== 'all' ? ` with status "${activeTab}"` : ''}.
-            {activeTab === 'all' && <> <Link href="/invoices/new" className="text-blue-600 hover:underline">Add your first one →</Link></>}
+            {activeTab === 'all' ? <>No invoices yet. <Link href="/invoices/new" className="text-blue-600 hover:underline">Add your first one →</Link></> :
+             activeTab === 'outstanding' ? 'Nothing outstanding — you\'re all caught up!' :
+             `No ${activeTab} invoices.`}
           </div>
         ) : (
           <ul className="divide-y divide-gray-100">
