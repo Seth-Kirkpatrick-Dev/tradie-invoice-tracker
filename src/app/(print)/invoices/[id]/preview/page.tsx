@@ -12,7 +12,7 @@ export default async function InvoicePreviewPage({ params }: { params: Promise<{
   const supabase = await createClient()
   const [invRes, profileRes] = await Promise.all([
     supabase.from('invoices').select('*, clients(name, email, phone, address)').eq('id', id).eq('user_id', user.id).single(),
-    supabase.from('profiles').select('first_name, last_name, business_name, phone, email, logo_url, tax_number, bank_account_details').eq('id', user.id).single(),
+    supabase.from('profiles').select('first_name, last_name, business_name, phone, logo_url, tax_number, bank_account_details').eq('id', user.id).single(),
   ])
 
   if (!invRes.data) notFound()
@@ -24,7 +24,7 @@ export default async function InvoicePreviewPage({ params }: { params: Promise<{
 
   return (
     <>
-      <PrintButton />
+      <PrintButton invoiceId={id} />
       <style>{`
         @media print {
           @page { margin: 1.5cm; size: A4; }
@@ -45,7 +45,7 @@ export default async function InvoicePreviewPage({ params }: { params: Promise<{
               )}
               <p className="font-bold text-gray-900 text-lg">{profile?.business_name ?? `${profile?.first_name ?? ''} ${profile?.last_name ?? ''}`.trim()}</p>
               {profile?.phone && <p className="text-sm text-gray-500">{profile.phone}</p>}
-              {user.email && <p className="text-sm text-gray-500">{user.email}</p>}
+              {user.email  && <p className="text-sm text-gray-500">{user.email}</p>}
               {profile?.tax_number && <p className="text-sm text-gray-500">Tax No: {profile.tax_number}</p>}
             </div>
             <div className="text-right">
