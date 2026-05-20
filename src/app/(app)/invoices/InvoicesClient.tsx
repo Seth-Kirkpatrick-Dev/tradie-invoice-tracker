@@ -81,7 +81,7 @@ export default function InvoicesClient() {
         <h1 className="text-2xl font-bold text-gray-900">Invoices</h1>
         {atFreeLimit ? (
           <span className="text-xs bg-yellow-100 text-yellow-800 px-3 py-1.5 rounded-lg font-medium">
-            5/5 active — <Link href="/settings" className="underline">Upgrade to Pro</Link>
+            5/5 active — <Link href="/upgrade" className="underline">Upgrade to Pro</Link>
           </span>
         ) : (
           <Link href="/invoices/new" className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">

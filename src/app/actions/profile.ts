@@ -30,9 +30,10 @@ function buildProfilePayload(formData: FormData) {
     tax_label,
     bank_account_details: (formData.get('bank_account_details') as string) || null,
     logo_url:             (formData.get('logo_url')             as string) || null,
+    invoice_number_prefix:    ((formData.get('invoice_number_prefix') as string)?.trim().toUpperCase()) || 'INV',
     reminder_schedule:       JSON.parse((formData.get('reminder_schedule') as string) || '[1,7,14,21]'),
-    default_email_subject:   (formData.get('default_email_subject') as string) || null,
-    default_email_body:      (formData.get('default_email_body')    as string) || null,
+    default_email_subject:   (formData.get('default_email_subject') as string) ?? undefined,
+    default_email_body:      (formData.get('default_email_body')    as string) ?? undefined,
     onboarding_completed: true,
   }
 }

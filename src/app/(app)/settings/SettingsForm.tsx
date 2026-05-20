@@ -17,6 +17,7 @@ const CURRENCY_OPTIONS = ['NZD', 'AUD', 'GBP', 'USD']
 export default function SettingsForm({ profile, userId }: { profile: any; userId: string }) {
   const isPro = ['pro', 'pro_plus'].includes(profile.subscription_tier ?? '')
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [isPending, startTransition] = useTransition()
   const [currency, setCurrency] = useState(profile.currency ?? 'NZD')
   const [logoUrl, setLogoUrl] = useState(profile.logo_url ?? '')
@@ -55,8 +56,11 @@ export default function SettingsForm({ profile, userId }: { profile: any; userId
 
   async function handleSubmit(formData: FormData) {
     startTransition(async () => {
+      setSaveError('')
       const result = await saveSettings(formData)
-      if (!result.error) {
+      if (result.error) {
+        setSaveError(result.error)
+      } else {
         setSaved(true)
         setTimeout(() => setSaved(false), 3000)
       }
@@ -66,6 +70,7 @@ export default function SettingsForm({ profile, userId }: { profile: any; userId
   return (
     <form action={handleSubmit} className="space-y-5">
       {saved && <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">Settings saved.</div>}
+      {saveError && <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{saveError}</div>}
 
       <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
         <h2 className="font-semibold text-gray-900">Business details</h2>
@@ -82,6 +87,11 @@ export default function SettingsForm({ profile, userId }: { profile: any; userId
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Business name</label>
           <input name="business_name" type="text" defaultValue={profile.business_name ?? ''} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Invoice number prefix</label>
+          <input name="invoice_number_prefix" type="text" defaultValue={profile.invoice_number_prefix ?? 'INV'} maxLength={10} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="INV" />
+          <p className="text-xs text-gray-400 mt-1">New invoices will be numbered e.g. {profile.invoice_number_prefix ?? 'INV'}-001</p>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>

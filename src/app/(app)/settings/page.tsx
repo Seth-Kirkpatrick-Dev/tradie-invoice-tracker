@@ -1,10 +1,13 @@
 import { getUser, getProfile } from '@/lib/supabase/auth'
 import SettingsForm from './SettingsForm'
 import { signOut } from '@/app/actions/auth'
+import Link from 'next/link'
 
 export default async function SettingsPage() {
   const [user, profile] = await Promise.all([getUser(), getProfile()])
   if (!user || !profile) return null
+
+  const isPro = ['pro', 'pro_plus'].includes(profile.subscription_tier ?? '')
 
   return (
     <div className="px-6 py-8 max-w-2xl mx-auto">
@@ -16,6 +19,28 @@ export default async function SettingsPage() {
         <form action={signOut}>
           <button type="submit" className="text-sm border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50">Sign out</button>
         </form>
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-semibold text-gray-900">Plan</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              You are on the{' '}
+              <span className="font-medium text-gray-700 capitalize">{profile.subscription_tier ?? 'free'}</span> plan.
+            </p>
+          </div>
+          {isPro ? (
+            <span className="text-xs bg-blue-100 text-blue-700 font-medium px-3 py-1.5 rounded-full">Pro</span>
+          ) : (
+            <Link
+              href="/upgrade"
+              className="text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              Upgrade →
+            </Link>
+          )}
+        </div>
       </div>
 
       <SettingsForm profile={profile} userId={user.id} />
