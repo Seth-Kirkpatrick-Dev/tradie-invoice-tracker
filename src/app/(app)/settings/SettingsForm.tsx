@@ -37,7 +37,7 @@ export default function SettingsForm({ profile, userId }: { profile: any; userId
     const { error } = await supabase.storage.from('business-logos').upload(path, file, { upsert: true })
     if (error) { setUploadError(error.message) } else {
       const { data } = supabase.storage.from('business-logos').getPublicUrl(path)
-      setLogoUrl(data.publicUrl)
+      setLogoUrl(`${data.publicUrl}?v=${Date.now()}`)
       setLogoPreview(URL.createObjectURL(file))
     }
     setUploading(false)

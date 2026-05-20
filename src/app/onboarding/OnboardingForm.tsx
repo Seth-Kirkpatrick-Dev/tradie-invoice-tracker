@@ -58,7 +58,7 @@ export default function OnboardingForm({ userId, error }: Props) {
       setUploadError(error.message)
     } else {
       const { data } = supabase.storage.from('business-logos').getPublicUrl(path)
-      setLogoUrl(data.publicUrl)
+      setLogoUrl(`${data.publicUrl}?v=${Date.now()}`)
       setLogoPreview(URL.createObjectURL(file))
     }
     setUploading(false)

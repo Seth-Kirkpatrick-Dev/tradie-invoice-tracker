@@ -105,9 +105,12 @@ export async function updateInvoiceStatus(invoiceId: string, status: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
+  const update: Record<string, unknown> = { status }
+  if (status === 'sent') update.sent_date = new Date().toISOString()
+
   const { error } = await supabase
     .from('invoices')
-    .update({ status })
+    .update(update)
     .eq('id', invoiceId)
     .eq('user_id', user.id)
 

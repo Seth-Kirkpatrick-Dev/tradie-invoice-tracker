@@ -7,7 +7,8 @@ import { Plus, Trash2 } from 'lucide-react'
 interface LineItem { description: string; quantity: number; unit_price: number }
 interface Client { id: string; name: string }
 
-export default function EditInvoiceForm({ invoice, clients }: { invoice: any; clients: Client[] }) {
+export default function EditInvoiceForm({ invoice, clients, subscriptionTier }: { invoice: any; clients: Client[]; subscriptionTier: string }) {
+  const isPro = ['pro', 'pro_plus'].includes(subscriptionTier)
   const existing: LineItem[] = Array.isArray(invoice.line_items) ? invoice.line_items : []
   const [lineItems, setLineItems] = useState<LineItem[]>(existing.length ? existing : [{ description: '', quantity: 1, unit_price: 0 }])
   const [taxRate, setTaxRate] = useState((invoice.tax_rate * 100).toFixed(1))
@@ -108,13 +109,14 @@ export default function EditInvoiceForm({ invoice, clients }: { invoice: any; cl
           <textarea name="payment_method" rows={3} defaultValue={invoice.payment_method ?? ''} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Notes <span className="text-gray-400">(internal, not shown to client)</span></label>
           <textarea name="notes" rows={2} defaultValue={invoice.notes ?? ''} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
         </div>
-        <label className="flex items-center gap-2 cursor-pointer">
+        <label className={`flex items-center gap-2 ${isPro ? 'cursor-pointer' : 'cursor-default opacity-60'}`}>
           <input type="hidden" name="auto_reminders_enabled" value="false" />
-          <input type="checkbox" name="auto_reminders_enabled" value="true" defaultChecked={invoice.auto_reminders_enabled} className="rounded border-gray-300 text-blue-600" />
+          <input type="checkbox" name="auto_reminders_enabled" value="true" defaultChecked={invoice.auto_reminders_enabled} disabled={!isPro} className="rounded border-gray-300 text-blue-600 disabled:opacity-50" />
           <span className="text-sm text-gray-700">Auto-send reminders when overdue</span>
+          {!isPro && <span className="text-xs bg-blue-100 text-blue-600 font-medium px-1.5 py-0.5 rounded">Pro</span>}
         </label>
       </div>
 

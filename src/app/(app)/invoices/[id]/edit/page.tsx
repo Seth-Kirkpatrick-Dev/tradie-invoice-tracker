@@ -1,12 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
-import { getUser } from '@/lib/supabase/auth'
+import { getUser, getProfile } from '@/lib/supabase/auth'
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import EditInvoiceForm from './EditInvoiceForm'
 
 export default async function EditInvoicePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const user = await getUser()
+  const [user, profile] = await Promise.all([getUser(), getProfile()])
   if (!user) return null
 
   const supabase = await createClient()
@@ -24,7 +24,7 @@ export default async function EditInvoicePage({ params }: { params: Promise<{ id
         <Link href={`/invoices/${id}`} className="text-gray-400 hover:text-gray-600 text-sm">← Back</Link>
         <h1 className="text-2xl font-bold text-gray-900">Edit {invRes.data.invoice_number}</h1>
       </div>
-      <EditInvoiceForm invoice={invRes.data} clients={clientsRes.data ?? []} />
+      <EditInvoiceForm invoice={invRes.data} clients={clientsRes.data ?? []} subscriptionTier={profile?.subscription_tier ?? 'free'} />
     </div>
   )
 }

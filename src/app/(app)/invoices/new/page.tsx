@@ -22,7 +22,7 @@ export default async function NewInvoicePage() {
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">
           <p className="font-semibold text-yellow-900">Free plan limit reached</p>
           <p className="text-sm text-yellow-700 mt-1">You have 5 active invoices. Upgrade to Pro for unlimited invoices.</p>
-          <Link href="/settings" className="mt-4 inline-block bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">Upgrade to Pro</Link>
+          <Link href="/upgrade" className="mt-4 inline-block bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">Upgrade to Pro</Link>
         </div>
       </div>
     )
@@ -40,6 +40,7 @@ export default async function NewInvoicePage() {
         defaultTaxRate={profile?.tax_rate ? profile.tax_rate * 100 : 15}
         defaultTaxLabel={profile?.tax_label ?? 'GST'}
         defaultPaymentMethod={profile?.bank_account_details ?? ''}
+        subscriptionTier={profile?.subscription_tier ?? 'free'}
       />
     </div>
   )

@@ -43,7 +43,7 @@ export default function HomePage() {
           </a>
         </div>
         <p className="mt-4 text-sm text-gray-400">
-          Free plan available. Pro from $29 NZD/month.
+          Free plan available. Pro from $19/month.
         </p>
       </section>
 
@@ -101,7 +101,7 @@ export default function HomePage() {
             </span>
             <h3 className="font-bold text-gray-900 text-lg">Pro</h3>
             <p className="text-3xl font-bold text-gray-900 mt-2">
-              $29 NZD
+              $19
               <span className="text-base font-normal text-gray-500"> / month</span>
             </p>
             <ul className="mt-6 space-y-2 text-sm text-gray-600">

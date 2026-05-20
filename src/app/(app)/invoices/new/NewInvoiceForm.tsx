@@ -13,9 +13,11 @@ interface Props {
   defaultTaxRate: number
   defaultTaxLabel: string
   defaultPaymentMethod: string
+  subscriptionTier: string
 }
 
-export default function NewInvoiceForm({ clients, defaultCurrency, defaultTaxRate, defaultTaxLabel, defaultPaymentMethod }: Props) {
+export default function NewInvoiceForm({ clients, defaultCurrency, defaultTaxRate, defaultTaxLabel, defaultPaymentMethod, subscriptionTier }: Props) {
+  const isPro = ['pro', 'pro_plus'].includes(subscriptionTier)
   const [lineItems, setLineItems] = useState<LineItem[]>([{ description: '', quantity: 1, unit_price: 0 }])
   const [taxRate, setTaxRate] = useState(defaultTaxRate)
   const [error, setError] = useState('')
@@ -157,10 +159,11 @@ export default function NewInvoiceForm({ clients, defaultCurrency, defaultTaxRat
           <label className="block text-sm font-medium text-gray-700 mb-1">Notes <span className="text-gray-400">(internal, not shown to client)</span></label>
           <textarea name="notes" rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
         </div>
-        <label className="flex items-center gap-2 cursor-pointer">
+        <label className={`flex items-center gap-2 ${isPro ? 'cursor-pointer' : 'cursor-default opacity-60'}`}>
           <input type="hidden" name="auto_reminders_enabled" value="false" />
-          <input type="checkbox" name="auto_reminders_enabled" value="true" defaultChecked className="rounded border-gray-300 text-blue-600" />
+          <input type="checkbox" name="auto_reminders_enabled" value="true" defaultChecked disabled={!isPro} className="rounded border-gray-300 text-blue-600 disabled:opacity-50" />
           <span className="text-sm text-gray-700">Auto-send reminders when overdue</span>
+          {!isPro && <span className="text-xs bg-blue-100 text-blue-600 font-medium px-1.5 py-0.5 rounded">Pro</span>}
         </label>
       </div>
 

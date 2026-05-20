@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
       subject,
       content:         body,
       days_overdue:    daysOver,
-      status:          emailSent ? 'sent' : 'queued',
+      status:          emailSent ? 'sent' : (process.env.RESEND_API_KEY ? 'failed' : 'queued'),
     })
 
     // Only create a notification when email was actually sent

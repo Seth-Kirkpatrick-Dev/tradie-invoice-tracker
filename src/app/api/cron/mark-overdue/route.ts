@@ -19,11 +19,23 @@ export async function GET(request: NextRequest) {
     .eq('status', 'sent')
     .lt('due_date', today)
     .not('due_date', 'is', null)
-    .select('id')
+    .select('id, invoice_number, user_id')
 
   if (error) {
     console.error('mark-overdue cron error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  if (data && data.length > 0) {
+    await supabase.from('notifications').insert(
+      data.map(inv => ({
+        user_id:    inv.user_id,
+        type:       'invoice_overdue',
+        title:      `Invoice ${inv.invoice_number} is now overdue`,
+        body:       'This invoice has passed its due date and been marked overdue.',
+        invoice_id: inv.id,
+      }))
+    )
   }
 
   console.log(`mark-overdue: updated ${data?.length ?? 0} invoices`)

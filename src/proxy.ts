@@ -26,7 +26,7 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  const protectedPaths = ['/dashboard', '/invoices', '/clients', '/settings', '/onboarding']
+  const protectedPaths = ['/dashboard', '/invoices', '/clients', '/settings', '/onboarding', '/upgrade']
   const isProtected = protectedPaths.some(p => pathname.startsWith(p))
   if (isProtected && !session) {
     return NextResponse.redirect(new URL('/login', request.url))
