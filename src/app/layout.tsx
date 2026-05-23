@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist } from 'next/font/google'
 import './globals.css'
+import ServiceWorker from '@/components/ServiceWorker'
 
 const geist = Geist({ variable: '--font-geist', subsets: ['latin'] })
 
@@ -30,7 +31,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en-NZ" className={`${geist.variable} h-full antialiased`}>
       <head />
-      <body className="min-h-full flex flex-col font-[var(--font-geist)]">{children}</body>
+      <body className="min-h-full flex flex-col font-[var(--font-geist)]">
+        <ServiceWorker />
+        {children}
+      </body>
     </html>
   )
 }
