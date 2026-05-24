@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useSupabase } from '@/hooks/useSupabase'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { formatCurrency, formatDate, daysOverdue } from '@/lib/utils'
+import { formatCurrency, formatDate, daysOverdue, countryToLocale } from '@/lib/utils'
 
 const STATUS_TABS = ['all', 'outstanding', 'overdue', 'sent', 'draft', 'paid'] as const
 type Tab = typeof STATUS_TABS[number]
@@ -31,6 +31,7 @@ export default function InvoicesClient() {
   const supabase = useSupabase()
   const [invoices, setInvoices] = useState<Invoice[] | null>(null)
   const [search, setSearch] = useState('')
+  const [locale, setLocale] = useState('en-NZ')
   const searchParams = useSearchParams()
   const initialTab = (STATUS_TABS as readonly string[]).includes(searchParams.get('tab') ?? '') ? searchParams.get('tab') as Tab : 'all'
   const [activeTab, setActiveTab] = useState<Tab>(initialTab)
@@ -53,13 +54,13 @@ export default function InvoicesClient() {
 
       const [invoicesRes, profileRes, activeCountRes] = await Promise.all([
         query,
-        supabase.from('profiles').select('subscription_tier').eq('id', user.id).single(),
+        supabase.from('profiles').select('subscription_tier, country').eq('id', user.id).single(),
         supabase.from('invoices').select('id', { count: 'exact', head: true }).eq('user_id', user.id).in('status', ['draft', 'sent', 'overdue']),
       ])
 
       const data = (invoicesRes.data ?? []) as unknown as Invoice[]
       setInvoices(data)
-
+      setLocale(countryToLocale(profileRes.data?.country))
       setAtFreeLimit(profileRes.data?.subscription_tier === 'free' && (activeCountRes.count ?? 0) >= 5)
     }
     load()
@@ -146,7 +147,7 @@ export default function InvoicesClient() {
                         <StatusBadge status={inv.status} />
                       </div>
                       <p className="text-xs text-gray-400 mt-0.5">
-                        {inv.clients?.name ?? 'No client'} · Due {formatDate(inv.due_date)}
+                        {inv.clients?.name ?? 'No client'} · Due {formatDate(inv.due_date, locale)}
                         {days !== null && <span className="text-red-500 font-medium"> · {days}d overdue</span>}
                       </p>
                     </div>

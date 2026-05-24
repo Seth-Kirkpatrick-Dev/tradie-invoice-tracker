@@ -18,6 +18,18 @@ export const metadata: Metadata = {
     statusBarStyle: 'default',
     title: 'PaidUp',
   },
+  openGraph: {
+    title: 'PaidUp — Invoice Tracker',
+    description: 'Get paid faster. Stop chasing invoices.',
+    type: 'website',
+    images: [{ url: '/icon-192.png', width: 192, height: 192, alt: 'PaidUp' }],
+  },
+  twitter: {
+    card: 'summary',
+    title: 'PaidUp — Invoice Tracker',
+    description: 'Get paid faster. Stop chasing invoices.',
+    images: ['/icon-192.png'],
+  },
 }
 
 export const viewport: Viewport = {

@@ -127,6 +127,13 @@ export async function markAsPaid(invoiceId: string) {
 
 const VALID_STATUSES = ['draft', 'sent', 'overdue', 'paid'] as const
 
+const VALID_TRANSITIONS: Record<string, string[]> = {
+  draft:   ['sent', 'paid'],
+  sent:    ['paid', 'overdue'],
+  overdue: ['paid'],
+  paid:    [],
+}
+
 export async function updateInvoiceStatus(invoiceId: string, status: string) {
   if (!(VALID_STATUSES as readonly string[]).includes(status)) {
     return { error: 'Invalid status' }
@@ -134,6 +141,18 @@ export async function updateInvoiceStatus(invoiceId: string, status: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
+
+  const { data: existing } = await supabase
+    .from('invoices')
+    .select('status')
+    .eq('id', invoiceId)
+    .eq('user_id', user.id)
+    .single()
+
+  if (!existing) return { error: 'Invoice not found' }
+  if (!VALID_TRANSITIONS[existing.status]?.includes(status)) {
+    return { error: `Cannot transition from ${existing.status} to ${status}` }
+  }
 
   const update: Record<string, unknown> = { status }
   if (status === 'sent') update.sent_date = new Date().toISOString()

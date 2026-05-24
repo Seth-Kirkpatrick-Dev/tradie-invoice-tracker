@@ -141,7 +141,7 @@ export default function ClientsClient({ clients: initialClients }: { clients: Cl
               {editing && <input type="hidden" name="id" value={editing.id} />}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-                <input name="name" type="text" required defaultValue={editing?.name} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Jim's Plumbing" />
+                <input name="name" type="text" required autoFocus defaultValue={editing?.name} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Jim's Plumbing" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>

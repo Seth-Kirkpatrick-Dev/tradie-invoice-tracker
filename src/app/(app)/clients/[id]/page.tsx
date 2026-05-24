@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getUser } from '@/lib/supabase/auth'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { formatCurrency, formatDate } from '@/lib/utils'
+import { formatCurrency, formatDate, countryToLocale } from '@/lib/utils'
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -10,10 +10,12 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   if (!user) return null
 
   const supabase = await createClient()
-  const [clientRes, invoicesRes] = await Promise.all([
+  const [clientRes, invoicesRes, profileRes] = await Promise.all([
     supabase.from('clients').select('*').eq('id', id).eq('user_id', user.id).is('deleted_at', null).single(),
     supabase.from('invoices').select('id, invoice_number, total, due_date, issue_date, status, currency').eq('user_id', user.id).eq('client_id', id).order('issue_date', { ascending: false }),
+    supabase.from('profiles').select('country').eq('id', user.id).single(),
   ])
+  const locale = countryToLocale(profileRes.data?.country)
 
   if (!clientRes.data) notFound()
 
@@ -70,7 +72,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                 <Link href={`/invoices/${inv.id}`} className="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 transition-colors">
                   <div>
                     <p className="text-sm font-medium text-gray-900">{inv.invoice_number}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{formatDate(inv.issue_date)}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{formatDate(inv.issue_date, locale)}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-semibold text-gray-900">{formatCurrency(inv.total, inv.currency)}</p>

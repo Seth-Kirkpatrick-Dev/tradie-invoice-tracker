@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getUser } from '@/lib/supabase/auth'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { formatCurrency, formatDate, daysOverdue } from '@/lib/utils'
+import { formatCurrency, formatDate, daysOverdue, countryToLocale } from '@/lib/utils'
 import InvoiceActions from './InvoiceActions'
 
 export default async function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -11,12 +11,11 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
   if (!user) return null
 
   const supabase = await createClient()
-  const { data: inv } = await supabase
-    .from('invoices')
-    .select('*, clients(name, email, phone, address)')
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .single()
+  const [{ data: inv }, { data: profile }] = await Promise.all([
+    supabase.from('invoices').select('*, clients(name, email, phone, address)').eq('id', id).eq('user_id', user.id).single(),
+    supabase.from('profiles').select('country').eq('id', user.id).single(),
+  ])
+  const locale = countryToLocale(profile?.country)
 
   if (!inv) notFound()
 
@@ -56,16 +55,16 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
           <div className="space-y-2">
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Issue date</p>
-              <p className="text-sm text-gray-900">{formatDate(inv.issue_date)}</p>
+              <p className="text-sm text-gray-900">{formatDate(inv.issue_date, locale)}</p>
             </div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Due date</p>
-              <p className="text-sm text-gray-900">{formatDate(inv.due_date)}</p>
+              <p className="text-sm text-gray-900">{formatDate(inv.due_date, locale)}</p>
             </div>
             {inv.paid_date && (
               <div>
                 <p className="text-xs text-gray-400 uppercase tracking-wide">Paid</p>
-                <p className="text-sm text-green-700 font-medium">{formatDate(inv.paid_date)}</p>
+                <p className="text-sm text-green-700 font-medium">{formatDate(inv.paid_date, locale)}</p>
               </div>
             )}
           </div>
