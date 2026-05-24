@@ -3,10 +3,12 @@
 import { useTransition, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { markAsPaid, updateInvoiceStatus, deleteInvoice } from '@/app/actions/invoices'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 export default function InvoiceActions({ invoiceId, status }: { invoiceId: string; status: string }) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState('')
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const router = useRouter()
 
   async function handleMarkPaid() {
@@ -25,8 +27,8 @@ export default function InvoiceActions({ invoiceId, status }: { invoiceId: strin
     })
   }
 
-  async function handleDelete() {
-    if (!confirm('Delete this invoice? This cannot be undone.')) return
+  function handleDeleteConfirmed() {
+    setShowDeleteConfirm(false)
     startTransition(async () => {
       const result = await deleteInvoice(invoiceId)
       if (result.error) { setError(result.error); return }
@@ -35,46 +37,57 @@ export default function InvoiceActions({ invoiceId, status }: { invoiceId: strin
   }
 
   return (
-    <div className="space-y-3">
-      {error && <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>}
+    <>
+      <div className="space-y-3">
+        {error && <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>}
 
-      {status !== 'paid' && (
+        {status !== 'paid' && (
+          <button
+            onClick={handleMarkPaid}
+            disabled={isPending}
+            className="w-full bg-green-600 text-white py-3 rounded-xl text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition-colors"
+          >
+            ✓ Mark as paid
+          </button>
+        )}
+
+        {status === 'draft' && (
+          <button
+            onClick={() => handleStatusChange('sent')}
+            disabled={isPending}
+            className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          >
+            Mark as sent
+          </button>
+        )}
+
+        {status === 'sent' && (
+          <button
+            onClick={() => handleStatusChange('overdue')}
+            disabled={isPending}
+            className="w-full border border-red-300 text-red-600 py-3 rounded-xl text-sm font-medium hover:bg-red-50 disabled:opacity-50 transition-colors"
+          >
+            Mark as overdue
+          </button>
+        )}
+
         <button
-          onClick={handleMarkPaid}
+          onClick={() => setShowDeleteConfirm(true)}
           disabled={isPending}
-          className="w-full bg-green-600 text-white py-3 rounded-xl text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition-colors"
+          className="w-full border border-gray-200 text-gray-500 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 disabled:opacity-50 transition-colors"
         >
-          ✓ Mark as paid
+          Delete invoice
         </button>
-      )}
+      </div>
 
-      {status === 'draft' && (
-        <button
-          onClick={() => handleStatusChange('sent')}
-          disabled={isPending}
-          className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
-        >
-          Mark as sent
-        </button>
-      )}
-
-      {status === 'sent' && (
-        <button
-          onClick={() => handleStatusChange('overdue')}
-          disabled={isPending}
-          className="w-full border border-red-300 text-red-600 py-3 rounded-xl text-sm font-medium hover:bg-red-50 disabled:opacity-50 transition-colors"
-        >
-          Mark as overdue
-        </button>
-      )}
-
-      <button
-        onClick={handleDelete}
-        disabled={isPending}
-        className="w-full border border-gray-200 text-gray-500 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 disabled:opacity-50 transition-colors"
-      >
-        Delete invoice
-      </button>
-    </div>
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="Delete invoice?"
+        message="This cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={handleDeleteConfirmed}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
+    </>
   )
 }

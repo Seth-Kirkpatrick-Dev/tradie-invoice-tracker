@@ -5,6 +5,7 @@ import { upsertClient, deleteClient } from '@/app/actions/clients'
 import { useSupabase } from '@/hooks/useSupabase'
 import Link from 'next/link'
 import { UserPlus, Pencil, Trash2, X } from 'lucide-react'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 interface Client {
   id: string
@@ -22,6 +23,7 @@ export default function ClientsClient({ clients: initialClients }: { clients: Cl
   const [editing, setEditing] = useState<Client | null>(null)
   const [error, setError] = useState('')
   const [isPending, startTransition] = useTransition()
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
 
   useEffect(() => {
     if (initialClients !== null) return
@@ -67,8 +69,14 @@ export default function ClientsClient({ clients: initialClients }: { clients: Cl
     })
   }
 
-  async function handleDelete(id: string, name: string) {
-    if (!confirm(`Remove ${name}? Their invoices will be kept.`)) return
+  function handleDelete(id: string, name: string) {
+    setDeleteTarget({ id, name })
+  }
+
+  function handleDeleteConfirmed() {
+    if (!deleteTarget) return
+    const { id } = deleteTarget
+    setDeleteTarget(null)
     startTransition(async () => {
       await deleteClient(id)
       await refreshClients()
@@ -125,6 +133,15 @@ export default function ClientsClient({ clients: initialClients }: { clients: Cl
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title={`Remove ${deleteTarget?.name ?? 'client'}?`}
+        message="Their invoices will be kept."
+        confirmLabel="Remove"
+        onConfirm={handleDeleteConfirmed}
+        onCancel={() => setDeleteTarget(null)}
+      />
 
       {/* Modal */}
       {showModal && (
