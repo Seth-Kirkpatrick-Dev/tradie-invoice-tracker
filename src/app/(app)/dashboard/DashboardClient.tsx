@@ -1,10 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useSupabase } from '@/hooks/useSupabase'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { formatCurrency, daysOverdue } from '@/lib/utils'
+import { formatCurrency, daysOverdue, countryToLocale, formatDate } from '@/lib/utils'
 
 interface Invoice {
   id: string
@@ -16,58 +13,50 @@ interface Invoice {
   clients: { name: string } | null
 }
 
-interface Stats {
-  overdue: number
-  dueSoon: number
-  outstanding: number
-  paidMonth: number
+interface Props {
+  firstName: string
+  defaultCurrency: string
+  country: string
+  overdueByCurrency: Record<string, number>
+  dueSoonByCurrency: Record<string, number>
+  outstandingByCurrency: Record<string, number>
+  paidMonthByCurrency: Record<string, number>
+  recentInvoices: Invoice[]
 }
 
-export default function DashboardClient() {
-  const supabase = useSupabase()
-  const router = useRouter()
-  const [stats, setStats] = useState<Stats | null>(null)
-  const [invoices, setInvoices] = useState<Invoice[] | null>(null)
-  const [firstName, setFirstName] = useState('')
-  const [currency, setCurrency] = useState('NZD')
+function CurrencyTotals({ byCurrency, defaultCurrency, className }: {
+  byCurrency: Record<string, number>
+  defaultCurrency: string
+  className: string
+}) {
+  const entries = Object.entries(byCurrency)
+  if (entries.length === 0) return <p className={`text-2xl font-bold mt-1 ${className}`}>{formatCurrency(0, defaultCurrency)}</p>
 
-  useEffect(() => {
-    async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+  const sorted = entries.sort(([a], [b]) =>
+    a === defaultCurrency ? -1 : b === defaultCurrency ? 1 : a.localeCompare(b)
+  )
+  return (
+    <div className="mt-1 space-y-0.5">
+      {sorted.map(([cur, total]) => (
+        <p key={cur} className={`text-2xl font-bold leading-tight ${className}`}>{formatCurrency(total, cur)}</p>
+      ))}
+    </div>
+  )
+}
 
-      const today = new Date().toISOString().split('T')[0]
-      const sevenDaysLater = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]
-      const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
+export default function DashboardClient({
+  firstName, defaultCurrency, country,
+  overdueByCurrency, dueSoonByCurrency, outstandingByCurrency, paidMonthByCurrency,
+  recentInvoices,
+}: Props) {
+  const locale = countryToLocale(country)
 
-      const [profileRes, overdueRes, dueSoonRes, allUnpaidRes, paidRes, recentRes] = await Promise.all([
-        supabase.from('profiles').select('first_name, currency').eq('id', user.id).single(),
-        supabase.from('invoices').select('total').eq('user_id', user.id).eq('status', 'overdue'),
-        supabase.from('invoices').select('total').eq('user_id', user.id).eq('status', 'sent').lte('due_date', sevenDaysLater).gte('due_date', today),
-        supabase.from('invoices').select('total').eq('user_id', user.id).in('status', ['sent', 'overdue']),
-        supabase.from('invoices').select('total').eq('user_id', user.id).eq('status', 'paid').gte('paid_date', startOfMonth),
-        supabase.from('invoices').select('id, invoice_number, total, due_date, status, currency, clients(name)').eq('user_id', user.id).in('status', ['overdue', 'sent', 'draft']).order('due_date', { ascending: true }).limit(5),
-      ])
-
-      const c = profileRes.data?.currency ?? 'NZD'
-      setCurrency(c)
-      setFirstName(profileRes.data?.first_name ?? '')
-      setStats({
-        overdue:     (overdueRes.data    ?? []).reduce((s, r) => s + r.total, 0),
-        dueSoon:     (dueSoonRes.data    ?? []).reduce((s, r) => s + r.total, 0),
-        outstanding: (allUnpaidRes.data  ?? []).reduce((s, r) => s + r.total, 0),
-        paidMonth:   (paidRes.data       ?? []).reduce((s, r) => s + r.total, 0),
-      })
-      setInvoices((recentRes.data ?? []) as unknown as Invoice[])
-    }
-    load()
-  }, [supabase])
-
-  const statCards = [
-    { label: 'Overdue',         value: stats?.overdue,   color: 'text-red-600',    bg: 'bg-red-50',    border: 'border-red-100',    href: '/invoices?tab=overdue' },
-    { label: 'Due this week',   value: stats?.dueSoon,   color: 'text-yellow-600', bg: 'bg-yellow-50', border: 'border-yellow-100', href: '/invoices?tab=sent' },
-    { label: 'Paid this month', value: stats?.paidMonth, color: 'text-green-600',  bg: 'bg-green-50',  border: 'border-green-100',  href: '/invoices?tab=paid' },
-  ]
+  const outstandingEntries = Object.entries(outstandingByCurrency)
+  const outstandingTotal = outstandingEntries.length === 1
+    ? formatCurrency(outstandingEntries[0][1], outstandingEntries[0][0])
+    : outstandingEntries.length === 0
+      ? formatCurrency(0, defaultCurrency)
+      : null
 
   return (
     <div className="px-6 py-8 max-w-4xl mx-auto">
@@ -81,24 +70,30 @@ export default function DashboardClient() {
       {/* Total outstanding banner */}
       <Link href="/invoices?tab=outstanding" className="block bg-blue-600 rounded-2xl p-5 mb-6 text-white hover:bg-blue-700 transition-colors touch-manipulation">
         <p className="text-blue-200 text-sm">Total outstanding</p>
-        {stats === null ? (
-          <div className="h-9 w-40 bg-blue-500 rounded animate-pulse mt-1" />
+        {outstandingTotal ? (
+          <p className="text-3xl font-bold mt-0.5">{outstandingTotal}</p>
         ) : (
-          <p className="text-3xl font-bold mt-0.5">{formatCurrency(stats.outstanding, currency)}</p>
+          <div className="mt-0.5 space-y-0.5">
+            {outstandingEntries.sort(([a], [b]) => a === defaultCurrency ? -1 : b === defaultCurrency ? 1 : a.localeCompare(b)).map(([cur, total]) => (
+              <p key={cur} className="text-2xl font-bold leading-tight">{formatCurrency(total, cur)}</p>
+            ))}
+          </div>
         )}
       </Link>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        {statCards.map(s => (
-          <Link key={s.label} href={s.href} className={`block rounded-xl border p-5 ${s.bg} ${s.border} hover:brightness-95 transition-all touch-manipulation`}>
-            <p className="text-sm text-gray-500">{s.label}</p>
-            {s.value === undefined ? (
-              <div className="h-8 w-28 bg-gray-200 rounded animate-pulse mt-1" />
-            ) : (
-              <p className={`text-2xl font-bold mt-1 ${s.color}`}>{formatCurrency(s.value, currency)}</p>
-            )}
-          </Link>
-        ))}
+        <Link href="/invoices?tab=overdue" className="block rounded-xl border p-5 bg-red-50 border-red-100 hover:brightness-95 transition-all touch-manipulation">
+          <p className="text-sm text-gray-500">Overdue</p>
+          <CurrencyTotals byCurrency={overdueByCurrency} defaultCurrency={defaultCurrency} className="text-red-600" />
+        </Link>
+        <Link href="/invoices?tab=sent" className="block rounded-xl border p-5 bg-yellow-50 border-yellow-100 hover:brightness-95 transition-all touch-manipulation">
+          <p className="text-sm text-gray-500">Due this week</p>
+          <CurrencyTotals byCurrency={dueSoonByCurrency} defaultCurrency={defaultCurrency} className="text-yellow-600" />
+        </Link>
+        <Link href="/invoices?tab=paid" className="block rounded-xl border p-5 bg-green-50 border-green-100 hover:brightness-95 transition-all touch-manipulation">
+          <p className="text-sm text-gray-500">Paid this month</p>
+          <CurrencyTotals byCurrency={paidMonthByCurrency} defaultCurrency={defaultCurrency} className="text-green-600" />
+        </Link>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200">
@@ -109,33 +104,24 @@ export default function DashboardClient() {
           </Link>
         </div>
 
-        {invoices === null ? (
-          <div className="divide-y divide-gray-50">
-            {[1,2,3].map(i => (
-              <div key={i} className="flex items-center justify-between px-5 py-4 animate-pulse">
-                <div className="space-y-2">
-                  <div className="h-4 w-24 bg-gray-200 rounded" />
-                  <div className="h-3 w-32 bg-gray-100 rounded" />
-                </div>
-                <div className="h-4 w-20 bg-gray-200 rounded" />
-              </div>
-            ))}
-          </div>
-        ) : invoices.length === 0 ? (
+        {recentInvoices.length === 0 ? (
           <div className="px-5 py-10 text-center text-gray-400 text-sm">
             No active invoices.{' '}
             <Link href="/invoices/new" className="text-blue-600 hover:underline">Add your first one →</Link>
           </div>
         ) : (
           <ul className="divide-y divide-gray-50">
-            {invoices.map(inv => {
+            {recentInvoices.map(inv => {
               const days = inv.status === 'overdue' ? daysOverdue(inv.due_date) : null
               return (
                 <li key={inv.id}>
                   <Link href={`/invoices/${inv.id}`} className="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 transition-colors">
                     <div>
                       <p className="text-sm font-medium text-gray-900">{inv.invoice_number}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{inv.clients?.name ?? 'No client'}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {inv.clients?.name ?? 'No client'}
+                        {inv.due_date && <> · Due {formatDate(inv.due_date, locale)}</>}
+                      </p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-semibold text-gray-900">{formatCurrency(inv.total, inv.currency)}</p>
