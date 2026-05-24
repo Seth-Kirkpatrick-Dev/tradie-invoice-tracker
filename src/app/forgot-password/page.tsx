@@ -1,6 +1,6 @@
-import { signIn } from '@/app/actions/auth'
+import { sendPasswordReset } from '@/app/actions/auth'
 
-export default function LoginPage({
+export default function ForgotPasswordPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string; message?: string }>
@@ -10,15 +10,16 @@ export default function LoginPage({
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">PaidUp</h1>
-          <p className="text-gray-500 mt-1">Get paid faster. Stop chasing invoices.</p>
+          <p className="text-gray-500 mt-1">Reset your password</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Sign in</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Forgot password?</h2>
+          <p className="text-sm text-gray-500 mb-6">Enter your email and we&apos;ll send you a reset link.</p>
 
           <AuthMessages searchParams={searchParams} />
 
-          <form action={signIn} className="space-y-4">
+          <form action={sendPasswordReset} className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                 Email
@@ -28,29 +29,10 @@ export default function LoginPage({
                 name="email"
                 type="email"
                 required
+                autoFocus
                 autoComplete="email"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="you@example.com"
-              />
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                  Password
-                </label>
-                <a href="/forgot-password" className="text-xs text-blue-600 hover:underline">
-                  Forgot password?
-                </a>
-              </div>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                autoComplete="current-password"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="••••••••"
               />
             </div>
 
@@ -58,14 +40,13 @@ export default function LoginPage({
               type="submit"
               className="w-full bg-blue-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
             >
-              Sign in
+              Send reset link
             </button>
           </form>
 
           <p className="text-center text-sm text-gray-500 mt-6">
-            No account?{' '}
-            <a href="/signup" className="text-blue-600 hover:underline font-medium">
-              Sign up free
+            <a href="/login" className="text-blue-600 hover:underline font-medium">
+              ← Back to sign in
             </a>
           </p>
         </div>
