@@ -2,12 +2,19 @@
 
 import { useTransition, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { markAsPaid, updateInvoiceStatus, deleteInvoice } from '@/app/actions/invoices'
+import { markAsPaid, updateInvoiceStatus, deleteInvoice, emailInvoiceToClient } from '@/app/actions/invoices'
 import ConfirmDialog from '@/components/ConfirmDialog'
 
-export default function InvoiceActions({ invoiceId, status }: { invoiceId: string; status: string }) {
+export default function InvoiceActions({
+  invoiceId, status, clientEmail,
+}: {
+  invoiceId: string
+  status: string
+  clientEmail: string | null
+}) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState('')
+  const [emailSuccess, setEmailSuccess] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const router = useRouter()
 
@@ -27,6 +34,16 @@ export default function InvoiceActions({ invoiceId, status }: { invoiceId: strin
     })
   }
 
+  async function handleEmail() {
+    setEmailSuccess(false)
+    setError('')
+    startTransition(async () => {
+      const result = await emailInvoiceToClient(invoiceId)
+      if (result.error) setError(result.error)
+      else setEmailSuccess(true)
+    })
+  }
+
   function handleDeleteConfirmed() {
     setShowDeleteConfirm(false)
     startTransition(async () => {
@@ -40,6 +57,11 @@ export default function InvoiceActions({ invoiceId, status }: { invoiceId: strin
     <>
       <div className="space-y-3">
         {error && <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>}
+        {emailSuccess && (
+          <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+            Invoice emailed to client.
+          </div>
+        )}
 
         {status !== 'paid' && (
           <button
@@ -68,6 +90,16 @@ export default function InvoiceActions({ invoiceId, status }: { invoiceId: strin
             className="w-full border border-red-300 text-red-600 py-3 rounded-xl text-sm font-medium hover:bg-red-50 disabled:opacity-50 transition-colors"
           >
             Mark as overdue
+          </button>
+        )}
+
+        {clientEmail && status !== 'paid' && (
+          <button
+            onClick={handleEmail}
+            disabled={isPending}
+            className="w-full border border-blue-300 text-blue-600 py-3 rounded-xl text-sm font-medium hover:bg-blue-50 disabled:opacity-50 transition-colors"
+          >
+            {isPending ? 'Sending…' : `Email invoice to client`}
           </button>
         )}
 

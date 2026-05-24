@@ -127,7 +127,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
         Print / Save PDF
       </Link>
 
-      <InvoiceActions invoiceId={inv.id} status={inv.status} />
+      <InvoiceActions invoiceId={inv.id} status={inv.status} clientEmail={client?.email ?? null} />
     </div>
   )
 }
