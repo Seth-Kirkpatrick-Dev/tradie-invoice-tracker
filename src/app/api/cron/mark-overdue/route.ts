@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (data && data.length > 0) {
-    await supabase.from('notifications').insert(
+    const { error: notifError } = await supabase.from('notifications').insert(
       data.map(inv => ({
         user_id:    inv.user_id,
         type:       'invoice_overdue',
@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
         invoice_id: inv.id,
       }))
     )
+    if (notifError) console.error('mark-overdue notification insert error:', notifError)
   }
 
   console.log(`mark-overdue: updated ${data?.length ?? 0} invoices`)

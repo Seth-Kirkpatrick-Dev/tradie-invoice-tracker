@@ -154,6 +154,15 @@ export async function updateInvoice(invoiceId: string, formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
+  // Prevent editing paid invoices (mirrors the page-level redirect)
+  const { data: existing } = await supabase
+    .from('invoices')
+    .select('status')
+    .eq('id', invoiceId)
+    .eq('user_id', user.id)
+    .single()
+  if (existing?.status === 'paid') return { error: 'Paid invoices cannot be edited' }
+
   const lineItems = parseLineItems(formData.get('line_items') as string)
   if (!lineItems) return { error: 'Invalid line items' }
 
