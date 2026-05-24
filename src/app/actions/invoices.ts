@@ -6,6 +6,39 @@ import { redirect } from 'next/navigation'
 
 const FREE_TIER_LIMIT = 5
 
+interface LineItem {
+  description: string
+  quantity: number
+  unit_price: number
+}
+
+function parseLineItems(raw: string): LineItem[] | null {
+  try {
+    const parsed = JSON.parse(raw || '[]')
+    if (!Array.isArray(parsed)) return null
+    const items: LineItem[] = []
+    for (const item of parsed) {
+      if (typeof item !== 'object' || item === null) return null
+      const qty   = Number(item.quantity)
+      const price = Number(item.unit_price)
+      if (!isFinite(qty) || !isFinite(price) || qty < 0 || price < 0) return null
+      items.push({
+        description: String(item.description ?? '').slice(0, 500),
+        quantity:    Math.round(qty   * 1000) / 1000,
+        unit_price:  Math.round(price * 100)  / 100,
+      })
+    }
+    return items
+  } catch {
+    return null
+  }
+}
+
+function clampTaxRate(raw: string | null): number {
+  const n = parseFloat(raw ?? '0') / 100
+  return Math.max(0, Math.min(1, isFinite(n) ? n : 0))
+}
+
 export async function createInvoice(formData: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -14,7 +47,7 @@ export async function createInvoice(formData: FormData) {
   // Check subscription tier and active invoice count
   const { data: profile } = await supabase
     .from('profiles')
-    .select('subscription_tier, next_invoice_number, invoice_number_prefix, currency, tax_rate, tax_label, bank_account_details')
+    .select('subscription_tier, invoice_number_prefix, currency, tax_rate, tax_label, bank_account_details')
     .eq('id', user.id)
     .single()
 
@@ -32,27 +65,19 @@ export async function createInvoice(formData: FormData) {
     }
   }
 
-  // Atomically claim the next invoice number
-  const { data: updated } = await supabase
-    .from('profiles')
-    .update({ next_invoice_number: profile.next_invoice_number + 1 })
-    .eq('id', user.id)
-    .select('next_invoice_number')
-    .single()
+  const lineItems = parseLineItems(formData.get('line_items') as string)
+  if (!lineItems) return { error: 'Invalid line items' }
 
-  const invoiceNum = profile.next_invoice_number
+  // Atomically claim the next invoice number via a DB function to avoid race conditions
+  const { data: claimedNum, error: rpcError } = await supabase.rpc('claim_invoice_number', { p_user_id: user.id })
+  if (rpcError || claimedNum === null) return { error: rpcError?.message ?? 'Could not assign invoice number' }
+
+  const invoiceNum = claimedNum as number
   const prefix = profile.invoice_number_prefix || 'INV'
   const invoiceNumber = `${prefix}-${String(invoiceNum).padStart(3, '0')}`
 
-  const lineItemsRaw = formData.get('line_items') as string
-  const lineItems = JSON.parse(lineItemsRaw || '[]')
-
-  const subtotal = lineItems.reduce(
-    (sum: number, item: { quantity: number; unit_price: number }) =>
-      sum + item.quantity * item.unit_price,
-    0
-  )
-  const taxRateVal = parseFloat(formData.get('tax_rate') as string) / 100
+  const subtotal = lineItems.reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
+  const taxRateVal = clampTaxRate(formData.get('tax_rate') as string)
   const taxAmount  = subtotal * taxRateVal
   const total      = subtotal + taxAmount
 
@@ -100,7 +125,12 @@ export async function markAsPaid(invoiceId: string) {
   return { error: error?.message ?? null }
 }
 
+const VALID_STATUSES = ['draft', 'sent', 'overdue', 'paid'] as const
+
 export async function updateInvoiceStatus(invoiceId: string, status: string) {
+  if (!(VALID_STATUSES as readonly string[]).includes(status)) {
+    return { error: 'Invalid status' }
+  }
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
@@ -124,14 +154,11 @@ export async function updateInvoice(invoiceId: string, formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const lineItemsRaw = formData.get('line_items') as string
-  const lineItems = JSON.parse(lineItemsRaw || '[]')
-  const subtotal = lineItems.reduce(
-    (sum: number, item: { quantity: number; unit_price: number }) =>
-      sum + item.quantity * item.unit_price,
-    0
-  )
-  const taxRateVal = parseFloat(formData.get('tax_rate') as string) / 100
+  const lineItems = parseLineItems(formData.get('line_items') as string)
+  if (!lineItems) return { error: 'Invalid line items' }
+
+  const subtotal = lineItems.reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
+  const taxRateVal = clampTaxRate(formData.get('tax_rate') as string)
   const taxAmount  = subtotal * taxRateVal
   const total      = subtotal + taxAmount
 

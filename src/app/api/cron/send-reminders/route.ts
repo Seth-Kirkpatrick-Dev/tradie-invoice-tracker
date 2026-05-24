@@ -99,7 +99,16 @@ export async function GET(request: NextRequest) {
         from,
         to: client.email,
         subject,
-        html: body.replace(/\n/g, '<br>'),
+        html: interpolateHtml(profile?.default_email_body ?? '', {
+          invoice_number:       inv.invoice_number,
+          amount,
+          due_date:             inv.due_date ?? '',
+          days_overdue:         String(daysOver),
+          client_first_name:    client.name?.split(' ')[0] ?? client.name,
+          tradie_business_name: profile?.business_name ?? '',
+          payment_method:       inv.payment_method ?? '',
+          currency:             inv.currency,
+        }),
       })
       if (sendError) {
         console.error(`send-reminders email error for ${inv.invoice_number}:`, sendError)
@@ -138,6 +147,15 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ sent, skipped })
 }
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+
 function interpolate(template: string, vars: Record<string, string>): string {
   return template.replace(/\{(\w+)\}/g, (_, key) => vars[key] ?? `{${key}}`)
+}
+
+function interpolateHtml(template: string, vars: Record<string, string>): string {
+  const escaped = Object.fromEntries(Object.entries(vars).map(([k, v]) => [k, escapeHtml(v)]))
+  return interpolate(template, escaped).replace(/\n/g, '<br>')
 }
