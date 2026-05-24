@@ -1,10 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSupabase } from '@/hooks/useSupabase'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { formatCurrency, formatDate, daysOverdue, countryToLocale } from '@/lib/utils'
+
+const PAGE_SIZE = 20
 
 const STATUS_TABS = ['all', 'outstanding', 'overdue', 'sent', 'draft', 'paid'] as const
 type Tab = typeof STATUS_TABS[number]
@@ -30,6 +32,8 @@ function StatusBadge({ status }: { status: string }) {
 export default function InvoicesClient() {
   const supabase = useSupabase()
   const [invoices, setInvoices] = useState<Invoice[] | null>(null)
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [search, setSearch] = useState('')
   const [locale, setLocale] = useState('en-NZ')
   const searchParams = useSearchParams()
@@ -37,34 +41,59 @@ export default function InvoicesClient() {
   const [activeTab, setActiveTab] = useState<Tab>(initialTab)
   const [atFreeLimit, setAtFreeLimit] = useState(false)
 
+  const buildQuery = useCallback((userId: string, tab: Tab, offset = 0) => {
+    let q = supabase
+      .from('invoices')
+      .select('id, invoice_number, total, due_date, status, currency, clients(name)')
+      .eq('user_id', userId)
+      .order('due_date', { ascending: true, nullsFirst: false })
+      .range(offset, offset + PAGE_SIZE - 1)
+
+    if (tab === 'outstanding') q = q.in('status', ['sent', 'overdue'])
+    else if (tab !== 'all') q = q.eq('status', tab)
+    return q
+  }, [supabase])
+
   useEffect(() => {
     async function load() {
       setInvoices(null)
+      setHasMore(false)
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      let query = supabase
-        .from('invoices')
-        .select('id, invoice_number, total, due_date, status, currency, clients(name)')
-        .eq('user_id', user.id)
-        .order('due_date', { ascending: true, nullsFirst: false })
-
-      if (activeTab === 'outstanding') query = query.in('status', ['sent', 'overdue'])
-      else if (activeTab !== 'all') query = query.eq('status', activeTab)
-
       const [invoicesRes, profileRes, activeCountRes] = await Promise.all([
-        query,
+        buildQuery(user.id, activeTab),
         supabase.from('profiles').select('subscription_tier, country').eq('id', user.id).single(),
         supabase.from('invoices').select('id', { count: 'exact', head: true }).eq('user_id', user.id).in('status', ['draft', 'sent', 'overdue']),
       ])
 
       const data = (invoicesRes.data ?? []) as unknown as Invoice[]
       setInvoices(data)
+      setHasMore(data.length === PAGE_SIZE)
       setLocale(countryToLocale(profileRes.data?.country))
       setAtFreeLimit(profileRes.data?.subscription_tier === 'free' && (activeCountRes.count ?? 0) >= 5)
     }
     load()
-  }, [supabase, activeTab])
+  }, [supabase, activeTab, buildQuery])
+
+  async function loadMore() {
+    if (!invoices || loadingMore) return
+    setLoadingMore(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setLoadingMore(false); return }
+
+    const res = await buildQuery(user.id, activeTab, invoices.length)
+    const more = (res.data ?? []) as unknown as Invoice[]
+    setInvoices(prev => [...(prev ?? []), ...more])
+    setHasMore(more.length === PAGE_SIZE)
+    setLoadingMore(false)
+  }
+
+  const q = search.trim().toLowerCase()
+  const displayed = !q || invoices === null ? invoices : invoices.filter(inv =>
+    inv.invoice_number.toLowerCase().includes(q) ||
+    (inv.clients?.name ?? '').toLowerCase().includes(q)
+  )
 
   return (
     <div className="px-6 py-8 max-w-4xl mx-auto">
@@ -107,13 +136,6 @@ export default function InvoicesClient() {
         </div>
       </div>
 
-      {(() => {
-        const q = search.trim().toLowerCase()
-        const displayed = !q || invoices === null ? invoices : invoices.filter(inv =>
-          inv.invoice_number.toLowerCase().includes(q) ||
-          (inv.clients?.name ?? '').toLowerCase().includes(q)
-        )
-        return (
       <div className="bg-white rounded-xl border border-gray-200">
         {displayed === null ? (
           <div className="divide-y divide-gray-100">
@@ -135,32 +157,43 @@ export default function InvoicesClient() {
              `No ${activeTab} invoices.`}
           </div>
         ) : (
-          <ul className="divide-y divide-gray-100">
-            {displayed.map(inv => {
-              const days = inv.status === 'overdue' ? daysOverdue(inv.due_date) : null
-              return (
-                <li key={inv.id}>
-                  <Link href={`/invoices/${inv.id}`} className="flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-gray-900">{inv.invoice_number}</p>
-                        <StatusBadge status={inv.status} />
+          <>
+            <ul className="divide-y divide-gray-100">
+              {displayed.map(inv => {
+                const days = inv.status === 'overdue' ? daysOverdue(inv.due_date) : null
+                return (
+                  <li key={inv.id}>
+                    <Link href={`/invoices/${inv.id}`} className="flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold text-gray-900">{inv.invoice_number}</p>
+                          <StatusBadge status={inv.status} />
+                        </div>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {inv.clients?.name ?? 'No client'} · Due {formatDate(inv.due_date, locale)}
+                          {days !== null && <span className="text-red-500 font-medium"> · {days}d overdue</span>}
+                        </p>
                       </div>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {inv.clients?.name ?? 'No client'} · Due {formatDate(inv.due_date, locale)}
-                        {days !== null && <span className="text-red-500 font-medium"> · {days}d overdue</span>}
-                      </p>
-                    </div>
-                    <p className="text-sm font-bold text-gray-900 ml-4 shrink-0">{formatCurrency(inv.total, inv.currency)}</p>
-                  </Link>
-                </li>
-              )
-            })}
-          </ul>
+                      <p className="text-sm font-bold text-gray-900 ml-4 shrink-0">{formatCurrency(inv.total, inv.currency)}</p>
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+            {hasMore && !search.trim() && (
+              <div className="px-5 py-4 border-t border-gray-100 text-center">
+                <button
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                  className="text-sm text-blue-600 hover:underline disabled:opacity-50"
+                >
+                  {loadingMore ? 'Loading…' : 'Load more'}
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
-        )
-      })()}
     </div>
   )
 }
